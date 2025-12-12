@@ -1,0 +1,908 @@
+[
+  {
+    "model": "menu_app.product",
+    "pk": 1,
+    "fields": {
+      "hotel": 4,
+      "name": "Espresso",
+      "sku": "COF-001-H4",
+      "canonical": 1,
+      "category": 1,
+      "description": "Strong espresso to start your day.",
+      "price": "290.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:00:00Z",
+      "updated_at": "2025-12-01T12:00:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 2,
+    "fields": {
+      "hotel": 4,
+      "name": "Cappuccino",
+      "sku": "COF-002-H4",
+      "canonical": 2,
+      "category": 1,
+      "description": "Espresso with steamed milk and foam.",
+      "price": "370.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:05:00Z",
+      "updated_at": "2025-12-01T12:05:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 3,
+    "fields": {
+      "hotel": 4,
+      "name": "Latte",
+      "sku": "COF-003-H4",
+      "canonical": 3,
+      "category": 1,
+      "description": "Smooth espresso with steamed milk.",
+      "price": "390.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:10:00Z",
+      "updated_at": "2025-12-01T12:10:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 4,
+    "fields": {
+      "hotel": 4,
+      "name": "Americano",
+      "sku": "COF-004-H4",
+      "canonical": 4,
+      "category": 1,
+      "description": "Classic espresso with hot water.",
+      "price": "299.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:15:00Z",
+      "updated_at": "2025-12-01T12:15:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 5,
+    "fields": {
+      "hotel": 4,
+      "name": "Mocha",
+      "sku": "COF-005-H4",
+      "canonical": 5,
+      "category": 1,
+      "description": "Espresso with chocolate and steamed milk.",
+      "price": "395.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:20:00Z",
+      "updated_at": "2025-12-01T12:20:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 6,
+    "fields": {
+      "hotel": 4,
+      "name": "Flat White",
+      "sku": "COF-006-H4",
+      "canonical": 6,
+      "category": 1,
+      "description": "Velvety espresso with thin milk foam.",
+      "price": "380.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:25:00Z",
+      "updated_at": "2025-12-01T12:25:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 7,
+    "fields": {
+      "hotel": 4,
+      "name": "Iced Coffee",
+      "sku": "COF-007-H4",
+      "canonical": 7,
+      "category": 1,
+      "description": "Chilled coffee over ice.",
+      "price": "340.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:30:00Z",
+      "updated_at": "2025-12-01T12:30:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 8,
+    "fields": {
+      "hotel": 4,
+      "name": "Green Tea",
+      "sku": "TEA-001-H4",
+      "canonical": 8,
+      "category": 2,
+      "description": "Freshly brewed green tea.",
+      "price": "270.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:35:00Z",
+      "updated_at": "2025-12-01T12:35:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 9,
+    "fields": {
+      "hotel": 4,
+      "name": "Black Tea",
+      "sku": "TEA-002-H4",
+      "canonical": 9,
+      "category": 2,
+      "description": "Classic black tea.",
+      "price": "210.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:40:00Z",
+      "updated_at": "2025-12-01T12:40:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 10,
+    "fields": {
+      "hotel": 4,
+      "name": "Oolong Tea",
+      "sku": "TEA-003-H4",
+      "canonical": 10,
+      "category": 2,
+      "description": "Delicate oolong tea.",
+      "price": "320.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:45:00Z",
+      "updated_at": "2025-12-01T12:45:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 11,
+    "fields": {
+      "hotel": 4,
+      "name": "Turkey Sandwich",
+      "sku": "LUN-001-H4",
+      "canonical": 11,
+      "category": 3,
+      "description": "Fresh turkey sandwich with veggies.",
+      "price": "750.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:50:00Z",
+      "updated_at": "2025-12-01T12:50:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 12,
+    "fields": {
+      "hotel": 4,
+      "name": "Grilled Cheese",
+      "sku": "LUN-002-H4",
+      "canonical": 12,
+      "category": 3,
+      "description": "Cheesy grilled sandwich.",
+      "price": "600.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:55:00Z",
+      "updated_at": "2025-12-01T12:55:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 13,
+    "fields": {
+      "hotel": 4,
+      "name": "Caesar Salad",
+      "sku": "LUN-003-H4",
+      "canonical": 13,
+      "category": 3,
+      "description": "Fresh salad with Caesar dressing.",
+      "price": "550.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T13:00:00Z",
+      "updated_at": "2025-12-01T13:00:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 14,
+    "fields": {
+      "hotel": 4,
+      "name": "Margherita Pizza",
+      "sku": "DIN-001-H4",
+      "canonical": 14,
+      "category": 4,
+      "description": "Classic pizza with tomato and cheese.",
+      "price": "1300.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T13:05:00Z",
+      "updated_at": "2025-12-01T13:05:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 15,
+    "fields": {
+      "hotel": 4,
+      "name": "Chocolate Cake",
+      "sku": "DES-001-H4",
+      "canonical": 15,
+      "category": 5,
+      "description": "Rich chocolate cake.",
+      "price": "450.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T13:10:00Z",
+      "updated_at": "2025-12-01T13:10:00Z",
+      "is_archived": false
+    }
+  },
+  
+  
+  {
+    "model": "menu_app.product",
+    "pk": 16,
+    "fields": {
+      "hotel": 5,
+      "name": "Espresso",
+      "sku": "COF-001-H4",
+      "canonical": 1,
+      "category": 1,
+      "description": "Strong espresso to start your day.",
+      "price": "250.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:00:00Z",
+      "updated_at": "2025-12-01T12:00:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 17,
+    "fields": {
+      "hotel": 5,
+      "name": "Cappuccino",
+      "sku": "COF-002-H4",
+      "canonical": 2,
+      "category": 1,
+      "description": "Espresso with steamed milk and foam.",
+      "price": "300.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:05:00Z",
+      "updated_at": "2025-12-01T12:05:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 18,
+    "fields": {
+      "hotel": 5,
+      "name": "Latte",
+      "sku": "COF-003-H4",
+      "canonical": 3,
+      "category": 1,
+      "description": "Smooth espresso with steamed milk.",
+      "price": "320.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:10:00Z",
+      "updated_at": "2025-12-01T12:10:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 19,
+    "fields": {
+      "hotel": 5,
+      "name": "Americano",
+      "sku": "COF-004-H4",
+      "canonical": 4,
+      "category": 1,
+      "description": "Classic espresso with hot water.",
+      "price": "280.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:15:00Z",
+      "updated_at": "2025-12-01T12:15:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 20,
+    "fields": {
+      "hotel": 5,
+      "name": "Mocha",
+      "sku": "COF-005-H4",
+      "canonical": 5,
+      "category": 1,
+      "description": "Espresso with chocolate and steamed milk.",
+      "price": "350.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:20:00Z",
+      "updated_at": "2025-12-01T12:20:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 21,
+    "fields": {
+      "hotel": 5,
+      "name": "Flat White",
+      "sku": "COF-006-H4",
+      "canonical": 6,
+      "category": 1,
+      "description": "Velvety espresso with thin milk foam.",
+      "price": "320.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:25:00Z",
+      "updated_at": "2025-12-01T12:25:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 22,
+    "fields": {
+      "hotel": 5,
+      "name": "Iced Coffee",
+      "sku": "COF-007-H4",
+      "canonical": 7,
+      "category": 1,
+      "description": "Chilled coffee over ice.",
+      "price": "280.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:30:00Z",
+      "updated_at": "2025-12-01T12:30:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 23,
+    "fields": {
+      "hotel": 5,
+      "name": "Green Tea",
+      "sku": "TEA-001-H4",
+      "canonical": 8,
+      "category": 2,
+      "description": "Freshly brewed green tea.",
+      "price": "200.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:35:00Z",
+      "updated_at": "2025-12-01T12:35:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 24,
+    "fields": {
+      "hotel": 5,
+      "name": "Black Tea",
+      "sku": "TEA-002-H4",
+      "canonical": 9,
+      "category": 2,
+      "description": "Classic black tea.",
+      "price": "180.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:40:00Z",
+      "updated_at": "2025-12-01T12:40:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 25,
+    "fields": {
+      "hotel": 5,
+      "name": "Oolong Tea",
+      "sku": "TEA-003-H4",
+      "canonical": 10,
+      "category": 2,
+      "description": "Delicate oolong tea.",
+      "price": "220.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:45:00Z",
+      "updated_at": "2025-12-01T12:45:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 26,
+    "fields": {
+      "hotel": 5,
+      "name": "Turkey Sandwich",
+      "sku": "LUN-001-H4",
+      "canonical": 11,
+      "category": 3,
+      "description": "Fresh turkey sandwich with veggies.",
+      "price": "550.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:50:00Z",
+      "updated_at": "2025-12-01T12:50:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 27,
+    "fields": {
+      "hotel": 5,
+      "name": "Grilled Cheese",
+      "sku": "LUN-002-H4",
+      "canonical": 12,
+      "category": 3,
+      "description": "Cheesy grilled sandwich.",
+      "price": "500.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:55:00Z",
+      "updated_at": "2025-12-01T12:55:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 28,
+    "fields": {
+      "hotel": 5,
+      "name": "Caesar Salad",
+      "sku": "LUN-003-H4",
+      "canonical": 13,
+      "category": 3,
+      "description": "Fresh salad with Caesar dressing.",
+      "price": "450.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T13:00:00Z",
+      "updated_at": "2025-12-01T13:00:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 29,
+    "fields": {
+      "hotel": 5,
+      "name": "Margherita Pizza",
+      "sku": "DIN-001-H4",
+      "canonical": 14,
+      "category": 4,
+      "description": "Classic pizza with tomato and cheese.",
+      "price": "1200.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T13:05:00Z",
+      "updated_at": "2025-12-01T13:05:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 30,
+    "fields": {
+      "hotel": 5,
+      "name": "Chocolate Cake",
+      "sku": "DES-001-H4",
+      "canonical": 15,
+      "category": 5,
+      "description": "Rich chocolate cake.",
+      "price": "450.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T13:10:00Z",
+      "updated_at": "2025-12-01T13:10:00Z",
+      "is_archived": false
+    }
+  },
+  
+  {
+    "model": "menu_app.product",
+    "pk": 31,
+    "fields": {
+      "hotel": 7,
+      "name": "Espresso",
+      "sku": "COF-001-H4",
+      "canonical": 1,
+      "category": 1,
+      "description": "Strong espresso to start your day.",
+      "price": "200.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:00:00Z",
+      "updated_at": "2025-12-01T12:00:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 32,
+    "fields": {
+      "hotel": 7,
+      "name": "Cappuccino",
+      "sku": "COF-002-H4",
+      "canonical": 2,
+      "category": 1,
+      "description": "Espresso with steamed milk and foam.",
+      "price": "255.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:05:00Z",
+      "updated_at": "2025-12-01T12:05:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 33,
+    "fields": {
+      "hotel": 7,
+      "name": "Latte",
+      "sku": "COF-003-H4",
+      "canonical": 3,
+      "category": 1,
+      "description": "Smooth espresso with steamed milk.",
+      "price": "295.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:10:00Z",
+      "updated_at": "2025-12-01T12:10:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 34,
+    "fields": {
+      "hotel": 7,
+      "name": "Americano",
+      "sku": "COF-004-H4",
+      "canonical": 4,
+      "category": 1,
+      "description": "Classic espresso with hot water.",
+      "price": "230.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:15:00Z",
+      "updated_at": "2025-12-01T12:15:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 35,
+    "fields": {
+      "hotel": 7,
+      "name": "Mocha",
+      "sku": "COF-005-H4",
+      "canonical": 5,
+      "category": 1,
+      "description": "Espresso with chocolate and steamed milk.",
+      "price": "300.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:20:00Z",
+      "updated_at": "2025-12-01T12:20:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 36,
+    "fields": {
+      "hotel": 7,
+      "name": "Flat White",
+      "sku": "COF-006-H4",
+      "canonical": 6,
+      "category": 1,
+      "description": "Velvety espresso with thin milk foam.",
+      "price": "290.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:25:00Z",
+      "updated_at": "2025-12-01T12:25:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 37,
+    "fields": {
+      "hotel": 7,
+      "name": "Iced Coffee",
+      "sku": "COF-007-H4",
+      "canonical": 7,
+      "category": 1,
+      "description": "Chilled coffee over ice.",
+      "price": "250.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:30:00Z",
+      "updated_at": "2025-12-01T12:30:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 38,
+    "fields": {
+      "hotel": 7,
+      "name": "Green Tea",
+      "sku": "TEA-001-H4",
+      "canonical": 8,
+      "category": 2,
+      "description": "Freshly brewed green tea.",
+      "price": "180.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:35:00Z",
+      "updated_at": "2025-12-01T12:35:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 39,
+    "fields": {
+      "hotel": 7,
+      "name": "Black Tea",
+      "sku": "TEA-002-H4",
+      "canonical": 9,
+      "category": 2,
+      "description": "Classic black tea.",
+      "price": "170.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:40:00Z",
+      "updated_at": "2025-12-01T12:40:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 40,
+    "fields": {
+      "hotel": 7,
+      "name": "Oolong Tea",
+      "sku": "TEA-003-H4",
+      "canonical": 10,
+      "category": 2,
+      "description": "Delicate oolong tea.",
+      "price": "220.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:45:00Z",
+      "updated_at": "2025-12-01T12:45:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 41,
+    "fields": {
+      "hotel": 7,
+      "name": "Turkey Sandwich",
+      "sku": "LUN-001-H4",
+      "canonical": 11,
+      "category": 3,
+      "description": "Fresh turkey sandwich with veggies.",
+      "price": "550.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:50:00Z",
+      "updated_at": "2025-12-01T12:50:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 42,
+    "fields": {
+      "hotel": 7,
+      "name": "Grilled Cheese",
+      "sku": "LUN-002-H4",
+      "canonical": 12,
+      "category": 3,
+      "description": "Cheesy grilled sandwich.",
+      "price": "500.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T12:55:00Z",
+      "updated_at": "2025-12-01T12:55:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 43,
+    "fields": {
+      "hotel": 7,
+      "name": "Caesar Salad",
+      "sku": "LUN-003-H4",
+      "canonical": 13,
+      "category": 3,
+      "description": "Fresh salad with Caesar dressing.",
+      "price": "430.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T13:00:00Z",
+      "updated_at": "2025-12-01T13:00:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 44,
+    "fields": {
+      "hotel": 7,
+      "name": "Margherita Pizza",
+      "sku": "DIN-001-H4",
+      "canonical": 14,
+      "category": 4,
+      "description": "Classic pizza with tomato and cheese.",
+      "price": "1100.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T13:05:00Z",
+      "updated_at": "2025-12-01T13:05:00Z",
+      "is_archived": false
+    }
+  },
+  {
+    "model": "menu_app.product",
+    "pk": 45,
+    "fields": {
+      "hotel": 7,
+      "name": "Chocolate Cake",
+      "sku": "DES-001-H4",
+      "canonical": 15,
+      "category": 5,
+      "description": "Rich chocolate cake.",
+      "price": "450.00",
+      "currency": "KES",
+      "available": true,
+      "extra_meta": {},
+      "image": "hotels/default-image.jpg",
+      "created_at": "2025-12-01T13:10:00Z",
+      "updated_at": "2025-12-01T13:10:00Z",
+      "is_archived": false
+    }
+  }
+
+
+
+]
