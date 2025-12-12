@@ -43,7 +43,10 @@ ROOT_URLCONF = 'backend.urls'
 # ---------------- TEMPLATES ----------------
 TEMPLATES = [{
     'BACKEND': 'django.template.backends.django.DjangoTemplates',
-    'DIRS': [],
+
+    # ✅ Added: point Django to your React build folder
+    'DIRS': [BASE_DIR / "frontend_build"],
+
     'APP_DIRS': True,
     'OPTIONS': {
         'context_processors': [
@@ -77,7 +80,13 @@ USE_TZ = True
 # ---------------- STATIC FILES ----------------
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"  # For Render
+
+# ✅ Added: Tell Django where your React assets are
+STATICFILES_DIRS = [
+    BASE_DIR / "frontend_build" / "assets",
+]
+
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # ---------------- MEDIA FILES ----------------
 MEDIA_URL = '/media/'
@@ -98,7 +107,7 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'AUTH_HEADER_TYPES': ('Bearer',),  # Authorization: Bearer <token>
+    'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
 # ---------------- CORS ----------------
@@ -113,7 +122,7 @@ MPESA_CALLBACK_URL = os.environ.get(
     "MPESA_CALLBACK_URL",
     "https://your-domain.com/api/mpesa/callback/"
 )
-MPESA_ENVIRONMENT = os.environ.get("MPESA_ENVIRONMENT", "sandbox")  # "live" for production
+MPESA_ENVIRONMENT = os.environ.get("MPESA_ENVIRONMENT", "sandbox")
 
 # ---------------- JAZZMIN CONFIG ----------------
 JAZZMIN_SETTINGS = {
