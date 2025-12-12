@@ -12,3 +12,5 @@ python backend/manage.py collectstatic --noinput
 
 # Apply migrations
 python backend/manage.py migrate --noinput
+
+python backend/manage.py create_admin
