@@ -4,11 +4,12 @@ from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# ---------------- SECURITY ----------------
 SECRET_KEY = os.environ.get('DJANGO_SECRET', 'dev-secret')
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'  # Use env variable
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')  # Render domain(s)
 
-
+# ---------------- INSTALLED APPS ----------------
 INSTALLED_APPS = [
     'jazzmin',
     'django.contrib.admin',
@@ -24,6 +25,7 @@ INSTALLED_APPS = [
     'corsheaders',
 ]
 
+# ---------------- MIDDLEWARE ----------------
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  
     'django.middleware.security.SecurityMiddleware',
@@ -37,6 +39,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'backend.urls'
 
+# ---------------- TEMPLATES ----------------
 TEMPLATES = [{
     'BACKEND': 'django.template.backends.django.DjangoTemplates',
     'DIRS': [],
@@ -53,32 +56,34 @@ TEMPLATES = [{
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
+# ---------------- DATABASE ----------------
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
+        'ENGINE': 'django.db.backends.sqlite3',  # Works for Render free tier
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
-
+# ---------------- PASSWORD VALIDATION ----------------
 AUTH_PASSWORD_VALIDATORS = []
 
+# ---------------- INTERNATIONALIZATION ----------------
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Africa/Nairobi'
 USE_I18N = True
 USE_TZ = True
 
-
+# ---------------- STATIC FILES ----------------
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-
+# ---------------- MEDIA FILES ----------------
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
+# ---------------- REST FRAMEWORK ----------------
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -87,46 +92,38 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20,
 }
 
+# ---------------- SIMPLE JWT ----------------
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'AUTH_HEADER_TYPES': ('Bearer',),  # Use "Authorization: Bearer <token>
+    'AUTH_HEADER_TYPES': ('Bearer',),  # Authorization: Bearer <token>
 }
 
-
+# ---------------- CORS ----------------
 CORS_ALLOW_ALL_ORIGINS = True
 
-# M-PESA CONFIG 
-# Sandbox credentials (replace with live ones for production)
+# ---------------- M-PESA CONFIG ----------------
 MPESA_CONSUMER_KEY = os.environ.get("MPESA_CONSUMER_KEY", "your_sandbox_consumer_key")
 MPESA_CONSUMER_SECRET = os.environ.get("MPESA_CONSUMER_SECRET", "your_sandbox_consumer_secret")
-
-# Safaricom Daraja Shortcode (Paybill)
-MPESA_SHORTCODE = os.environ.get("MPESA_SHORTCODE", "174379")  # Sandbox default
+MPESA_SHORTCODE = os.environ.get("MPESA_SHORTCODE", "174379")
 MPESA_PASSKEY = os.environ.get("MPESA_PASSKEY", "your_sandbox_passkey")
 MPESA_CALLBACK_URL = os.environ.get(
     "MPESA_CALLBACK_URL",
-    "https://your-domain.com/api/mpesa/callback/"  # Update when deploying
+    "https://your-domain.com/api/mpesa/callback/"
 )
-
-# Optional: sandbox vs live
 MPESA_ENVIRONMENT = os.environ.get("MPESA_ENVIRONMENT", "sandbox")  # "live" for production
 
+# ---------------- JAZZMIN CONFIG ----------------
 JAZZMIN_SETTINGS = {
     "site_title": "Digital Menu Review Admin",
     "site_header": "Digital MENU Dashboard",
     "site_brand": "DIGITAL MENU",
     "welcome_sign": "Welcome to the Digital Menu Admin",
     "copyright": "DIGITAL MENU",
-
-   
     "show_ui_builder": True,
-
-
-
     "navigation_expanded": True,
     "show_sidebar": True,
-    "theme": "darkly",  
+    "theme": "darkly",
 }
 
 JAZZMIN_UI_TWEAKS = {
