@@ -4,9 +4,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: { port: 5173 },
-  base: '/assets/', // ✅ ensures built CSS/JS are referenced correctly
+  base: '/static/assets/',  // ✅ Serve from Django staticfiles with assets folder
   build: {
-    outDir: 'dist',  // default output directory
+    outDir: 'dist',
     emptyOutDir: true,
   },
 })
