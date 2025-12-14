@@ -65,9 +65,10 @@ export default function App() {
             <nav className="space-x-6 flex items-center">
               <Link to="/" className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 transition">Hotels</Link>
               <Link to="/compare" className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 transition">Compare</Link>
+              {/* Admin hidden menu */}
               {isAdmin && (
                 <Link to="/admin/csv" className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 transition">
-                  Admin
+                  CSV Upload
                 </Link>
               )}
             </nav>
