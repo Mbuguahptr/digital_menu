@@ -81,9 +81,9 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# ✅ Added: Tell Django where your React assets are
+# ✅ Updated: Serve the entire React build folder, not just assets
 STATICFILES_DIRS = [
-    BASE_DIR / "frontend_build" / "assets",
+    BASE_DIR / "frontend_build",
 ]
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
