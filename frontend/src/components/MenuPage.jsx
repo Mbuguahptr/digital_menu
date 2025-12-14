@@ -3,7 +3,9 @@ import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import getImageUrl from "../utils/getImageUrl";
 
-const API_BASE = "http://127.0.0.1:8000";
+// ----------------- Updated API Base -----------------
+// Relative path works for frontend served from backend
+const API_BASE = "";
 
 export default function MenuPage() {
   const { slug } = useParams();
@@ -44,7 +46,9 @@ export default function MenuPage() {
     setError(null);
 
     // Fetch only food items for the menu
-    fetchProducts(`${API_BASE}/api/products/?hotel_slug=${slug}&product_type=food`);
+    fetchProducts(
+      `${API_BASE}/api/products/?hotel_slug=${slug}&product_type=food`
+    );
 
     return () => cancelToken.cancel();
   }, [slug]);
@@ -71,9 +75,7 @@ export default function MenuPage() {
   }
 
   if (error)
-    return (
-      <p className="text-red-500 text-center mt-10 text-lg">{error}</p>
-    );
+    return <p className="text-red-500 text-center mt-10 text-lg">{error}</p>;
 
   if (!products.length)
     return (

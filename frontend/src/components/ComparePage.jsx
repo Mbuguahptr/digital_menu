@@ -26,13 +26,13 @@ export default function ComparePage() {
     setLoading(true);
     setError(null);
 
-    const API_BASE = "http://127.0.0.1:8000"; // your backend
+    const API_BASE = "/api"; // relative path for frontend inside backend
 
     const params = new URLSearchParams();
     params.append("name", name);
 
     axios
-      .get(`${API_BASE}/api/products/compare/?${params.toString()}`, {
+      .get(`${API_BASE}/products/compare/?${params.toString()}`, {
         cancelToken: source.token,
       })
       .then((res) => {
@@ -104,9 +104,7 @@ export default function ComparePage() {
       )}
       {!loading && !error && items.length === 0 && name && (
         <p className="text-center text-gray-500 dark:text-gray-400 mt-10">
-          
-
-          
+          No matching products found.
         </p>
       )}
 

@@ -60,7 +60,6 @@ export default function ImageUpload() {
         setError(data.detail || "Upload failed.");
       } else {
         setMessage("✅ Image uploaded successfully!");
-        // Optionally, keep the preview after successful upload
       }
     } catch (err) {
       console.error(err);
@@ -102,9 +101,7 @@ export default function ImageUpload() {
       {message && (
         <p className="text-green-600 dark:text-green-400 mt-4">{message}</p>
       )}
-      {error && (
-        <p className="text-red-500 dark:text-red-400 mt-4">{error}</p>
-      )}
+      {error && <p className="text-red-500 dark:text-red-400 mt-4">{error}</p>}
     </div>
   );
 }

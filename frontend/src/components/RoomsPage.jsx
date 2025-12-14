@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import getImageUrl from "../utils/getImageUrl";
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "";
 
 export default function RoomsPage() {
   const { slug } = useParams();

@@ -5,7 +5,9 @@ import axios from "axios";
 
 // ---------------- API BASE URL ----------------
 // Vite-compatible
-const BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+const BASE_URL = "/api";
+
+// ---------------- HOTEL LIST COMPONENT ----------------
 
 export default function HotelList() {
   const [hotelsByCity, setHotelsByCity] = useState({});

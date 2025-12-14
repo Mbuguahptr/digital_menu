@@ -11,7 +11,7 @@ export default function MpesaCheckout() {
     setMsg("");
 
     try {
-      const res = await fetch(import.meta.env.VITE_API_URL + "/mpesa/checkout/", {
+      const res = await fetch(`/api/mpesa/checkout/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone, amount }),
@@ -21,6 +21,7 @@ export default function MpesaCheckout() {
       setMsg(data.CustomerMessage || data.error || "Check your phone");
 
     } catch (err) {
+      console.error(err);
       setMsg("Payment failed");
     }
 

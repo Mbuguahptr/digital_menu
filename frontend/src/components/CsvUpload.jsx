@@ -28,16 +28,13 @@ export default function CsvUpload() {
     }
 
     try {
-      const res = await fetch(
-        "http://127.0.0.1:8000/api/products/upload-csv/",
-        {
-          method: "POST",
-          body: formData,
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await fetch("/api/products/upload-csv/", {
+        method: "POST",
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const data = await res.json();
 

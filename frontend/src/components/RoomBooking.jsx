@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 
 // VITE-compatible API base
-const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+const API_BASE = "/api";
 
 export default function RoomBooking() {
   const { roomId } = useParams();
