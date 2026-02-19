@@ -10,3 +10,13 @@ node_modules/
 __pycache__/
 *.pyc
 .venv/
+
+# Build artifacts — never commit these
+backend/staticfiles/
+frontend/dist/
+backend/frontend_build/assets/
+*.pyc
+__pycache__/
+*.sqlite3
+.env
+venv/
