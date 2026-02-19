@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
+import { apiFetch } from "./api";
 
-export default function ImageUpload() {
+const MAX_FILE_SIZE_MB = 5;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+export default function ImageUpload({ onSuccess }) {
   const { id } = useParams();
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -10,20 +14,39 @@ export default function ImageUpload() {
   const [error, setError] = useState(null);
 
   const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (!selectedFile) return;
+    const selected = e.target.files[0];
+    if (!selected) return;
 
-    if (!selectedFile.type.startsWith("image/")) {
-      setError("Please select a valid image file.");
+    if (!selected.type.startsWith("image/")) {
+      setError("Please select a valid image file (JPEG, PNG, WebP, etc.).");
       setFile(null);
       setPreview(null);
       return;
     }
 
-    setFile(selectedFile);
-    setPreview(URL.createObjectURL(selectedFile));
+    // FIX: validate file size before upload attempt
+    if (selected.size > MAX_FILE_SIZE_BYTES) {
+      setError(`Image is too large. Maximum size is ${MAX_FILE_SIZE_MB} MB.`);
+      setFile(null);
+      setPreview(null);
+      return;
+    }
+
+    setFile(selected);
+    // Revoke any previous object URL to avoid memory leaks
+    if (preview) URL.revokeObjectURL(preview);
+    setPreview(URL.createObjectURL(selected));
     setError(null);
+    setMessage(null);
   };
+
+  // Revoke object URL on unmount
+  React.useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const upload = async () => {
     if (!file) {
@@ -39,31 +62,28 @@ export default function ImageUpload() {
     formData.append("image", file);
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setError("You must be logged in to upload.");
-        setLoading(false);
-        return;
-      }
-
-      const res = await fetch(`/api/products/${id}/upload_image/`, {
-        method: "POST",
-        body: formData,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      // FIX: apiFetch handles missing/expired tokens explicitly
+      const res = await apiFetch(
+        `/products/${id}/upload_image/`,
+        { method: "POST", body: formData },
+        true // auth required
+      );
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.detail || "Upload failed.");
+        setError(data.detail || "Upload failed. Please try again.");
       } else {
-        setMessage("✅ Image uploaded successfully!");
+        setMessage("Image uploaded successfully!");
+        onSuccess?.();
       }
     } catch (err) {
-      console.error(err);
-      setError("Network error. Please try again.");
+      if (err.message === "AUTH_MISSING" || err.code === "UNAUTHORIZED") {
+        setError("Your session has expired. Please log in again.");
+      } else {
+        console.error(err);
+        setError("Network error. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -75,7 +95,16 @@ export default function ImageUpload() {
         Upload Product Image
       </h2>
 
+      {/* FIX: label linked to input via htmlFor/id for accessibility */}
+      <label
+        htmlFor="image-upload-input"
+        className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1"
+      >
+        Choose image{" "}
+        <span className="text-xs text-gray-400">(max {MAX_FILE_SIZE_MB} MB)</span>
+      </label>
       <input
+        id="image-upload-input"
         type="file"
         accept="image/*"
         onChange={handleFileChange}
@@ -90,18 +119,26 @@ export default function ImageUpload() {
         />
       )}
 
+      {file && (
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+          {file.name} &mdash; {(file.size / 1024).toFixed(1)} KB
+        </p>
+      )}
+
       <button
         onClick={upload}
-        disabled={loading}
-        className="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 disabled:opacity-50 transition"
+        disabled={loading || !file}
+        className="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
       >
         {loading ? "Uploading..." : "Upload"}
       </button>
 
       {message && (
-        <p className="text-green-600 dark:text-green-400 mt-4">{message}</p>
+        <p className="text-green-600 dark:text-green-400 mt-4 text-sm">{message}</p>
       )}
-      {error && <p className="text-red-500 dark:text-red-400 mt-4">{error}</p>}
+      {error && (
+        <p className="text-red-500 dark:text-red-400 mt-4 text-sm">{error}</p>
+      )}
     </div>
   );
 }

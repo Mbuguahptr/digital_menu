@@ -2,59 +2,49 @@ import React, { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import getImageUrl from "../utils/getImageUrl";
 import axios from "axios";
-
-// ---------------- API BASE URL ----------------
-// Vite-compatible
-const BASE_URL = "/api";
-
-// ---------------- HOTEL LIST COMPONENT ----------------
+import { API_BASE } from "./api";
 
 export default function HotelList() {
   const [hotelsByCity, setHotelsByCity] = useState({});
   const [selectedCity, setSelectedCity] = useState("All");
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef();
 
-  // ---------------- FETCH HOTELS ----------------
   useEffect(() => {
+    const cancelSource = axios.CancelToken.source();
+    let cancelled = false;
+
     const fetchHotels = async () => {
       try {
-        const res = await axios.get(`${BASE_URL}/hotels/`);
+        const res = await axios.get(`${API_BASE}/hotels/`, {
+          cancelToken: cancelSource.token,
+        });
         const hotels = Array.isArray(res.data.results) ? res.data.results : [];
 
-        // Fetch rooms and food counts per hotel
-
-      
         const hotelsWithCounts = await Promise.all(
           hotels.map(async (hotel) => {
-            const roomsRes = await axios.get(
-              `${BASE_URL}/products/?hotel=${hotel.slug}&product_type=room`
-            );
-            const foodRes = await axios.get(
-              `${BASE_URL}/products/?hotel=${hotel.slug}&product_type=food`
-            );
-
+            const [roomsRes, foodRes] = await Promise.all([
+              axios.get(`${API_BASE}/products/`, {
+                params: { hotel: hotel.slug, product_type: "room", page_size: 1 },
+                cancelToken: cancelSource.token,
+              }),
+              axios.get(`${API_BASE}/products/`, {
+                params: { hotel: hotel.slug, product_type: "food", page_size: 1 },
+                cancelToken: cancelSource.token,
+              }),
+            ]);
             return {
               ...hotel,
-              rooms_count: Array.isArray(roomsRes.data.results)
-                ? roomsRes.data.results.length
-                : 0,
-              food_count: Array.isArray(foodRes.data.results)
-                ? foodRes.data.results.length
-                : 0,
+              rooms_count: roomsRes.data.count ?? 0,
+              food_count: foodRes.data.count ?? 0,
             };
           })
         );
 
-        
+        if (cancelled) return;
 
-
-
-
-        // Group hotels by city
         const grouped = hotelsWithCounts.reduce((acc, hotel) => {
           const city = hotel.city || "Other";
           if (!acc[city]) acc[city] = [];
@@ -64,20 +54,20 @@ export default function HotelList() {
 
         setHotelsByCity(grouped);
       } catch (err) {
-        console.error(err);
-        setError("Failed to fetch hotels.");
+        if (axios.isCancel(err)) return;
+        setError("Failed to fetch hotels. Please try again.");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchHotels();
+    return () => { cancelled = true; cancelSource.cancel(); };
   }, []);
 
-  //  DROPDOWN CLICK OUTSIDE 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setDropdownOpen(false);
       }
     };
@@ -91,156 +81,242 @@ export default function HotelList() {
       ? Object.values(hotelsByCity).flat()
       : hotelsByCity[selectedCity] || [];
 
-  // M-PESA STK Push 
-  const onBookRoom = async (hotelSlug, roomId, amount, phone) => {
-    if (!phone || !amount) {
-      alert("Phone number and amount are required.");
-      return;
-    }
+  if (loading) return (
+    <div style={{ maxWidth: 1280, margin: "0 auto", padding: "2rem 1.5rem" }}>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+        gap: "2rem",
+      }}>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} style={{
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: 4,
+            overflow: "hidden",
+            height: 380,
+            animation: "pulse 1.5s ease-in-out infinite",
+          }} />
+        ))}
+      </div>
+    </div>
+  );
 
-    try {
-      setActionLoading(true);
-      const res = await axios.post(`${BASE_URL}/payments/mpesa/stk_push/`, {
-        phone,
-        amount,
-        room_id: roomId,
-        hotel_slug: hotelSlug,
-      });
-      alert("STK push initiated. Check your phone.");
-      console.log(res.data);
-    } catch (err) {
-      console.error(err);
-      alert("Payment failed. Try again.");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  if (loading)
-    return (
-      <p className="text-gray-600 dark:text-gray-300 text-center mt-8 text-lg">
-        Loading hotels...
-      </p>
-    );
-
-  if (error)
-    return <p className="text-red-500 text-center mt-8 text-lg">{error}</p>;
+  if (error) return (
+    <p style={{ color: "#e05", textAlign: "center", marginTop: "3rem" }}>{error}</p>
+  );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-12">
-      {/* HEADER & CITY FILTER */}
-      <div className="text-center mb-12 relative">
-        <h2 className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-4">
-          Explore Our Hotels
-        </h2>
-        <p className="text-gray-600 dark:text-gray-300 mb-6">
-          Browse hotels by city and find your perfect stay.
-        </p>
+    <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 1.5rem 4rem" }}>
 
-        <div className="relative inline-block text-left" ref={dropdownRef}>
+      {/* ── Section header ──────────────────────────────────────────────── */}
+      <div style={{ textAlign: "center", marginBottom: "3rem" }}>
+        <p style={{
+          fontSize: "0.65rem", letterSpacing: "0.4em",
+          textTransform: "uppercase", color: "var(--gold)",
+          marginBottom: "0.75rem",
+        }}>
+          Eldoret's Finest
+        </p>
+        <h2 style={{
+          fontFamily: "var(--font-display)",
+          fontSize: "clamp(1.8rem, 4vw, 3rem)",
+          fontWeight: 300,
+          color: "var(--text)",
+          marginBottom: "0.75rem",
+        }}>
+          Our <em style={{ fontStyle: "italic", color: "var(--gold)" }}>Hotels</em>
+        </h2>
+        <div style={{
+          display: "flex", alignItems: "center",
+          justifyContent: "center", gap: "0.75rem", marginBottom: "1.5rem",
+        }}>
+          <div style={{ width: 30, height: 1, background: "var(--gold-dim)" }} />
+          <div style={{ width: 4, height: 4, background: "var(--gold)", transform: "rotate(45deg)" }} />
+          <div style={{ width: 30, height: 1, background: "var(--gold-dim)" }} />
+        </div>
+
+        {/* City filter dropdown */}
+        <div style={{ position: "relative", display: "inline-block" }} ref={dropdownRef}>
           <button
-            onClick={() => setDropdownOpen((prev) => !prev)}
-            className="inline-flex justify-between w-48 rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none transition"
+            onClick={() => setDropdownOpen(p => !p)}
+            aria-haspopup="listbox"
+            aria-expanded={dropdownOpen}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: "0.5rem",
+              padding: "0.5rem 1.25rem",
+              background: "transparent",
+              border: "1px solid var(--border)",
+              color: "var(--muted)",
+              fontSize: "0.7rem", letterSpacing: "0.2em", textTransform: "uppercase",
+              cursor: "pointer",
+              transition: "border-color 0.2s, color 0.2s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--gold-dim)"; e.currentTarget.style.color = "var(--text)"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
           >
             {selectedCity}
-            <svg
-              className={`-mr-1 ml-2 h-5 w-5 transition-transform duration-300 ${
-                dropdownOpen ? "rotate-180" : ""
-              }`}
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                fillRule="evenodd"
-                d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z"
-                clipRule="evenodd"
-              />
+            <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor"
+              style={{ transform: dropdownOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
+              <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
             </svg>
           </button>
 
-          <div
-            className={`absolute mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5 z-50 transform transition-all duration-300 ${
-              dropdownOpen
-                ? "opacity-100 scale-100"
-                : "opacity-0 scale-95 pointer-events-none"
-            }`}
-          >
-            <div className="py-1">
-              {allCities.map((city) => (
-                <button
-                  key={city}
-                  onClick={() => {
-                    setSelectedCity(city);
-                    setDropdownOpen(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                >
-                  {city}
-                </button>
+          {dropdownOpen && (
+            <ul role="listbox" style={{
+              position: "absolute", top: "calc(100% + 4px)", left: 0,
+              minWidth: "100%", zIndex: 50,
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              listStyle: "none", padding: "0.25rem 0",
+            }}>
+              {allCities.map(city => (
+                <li key={city} role="option" aria-selected={selectedCity === city}>
+                  <button
+                    onClick={() => { setSelectedCity(city); setDropdownOpen(false); }}
+                    style={{
+                      display: "block", width: "100%", textAlign: "left",
+                      padding: "0.5rem 1.25rem",
+                      background: selectedCity === city ? "var(--border)" : "transparent",
+                      color: selectedCity === city ? "var(--gold)" : "var(--muted)",
+                      fontSize: "0.75rem", letterSpacing: "0.1em",
+                      border: "none", cursor: "pointer",
+                      transition: "background 0.15s, color 0.15s",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "var(--border)"; e.currentTarget.style.color = "var(--text)"; }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = selectedCity === city ? "var(--border)" : "transparent";
+                      e.currentTarget.style.color = selectedCity === city ? "var(--gold)" : "var(--muted)";
+                    }}
+                  >
+                    {city}
+                  </button>
+                </li>
               ))}
-            </div>
-          </div>
+            </ul>
+          )}
         </div>
       </div>
 
-      {/* HOTEL GRID */}
+      {/* ── Hotel grid ──────────────────────────────────────────────────── */}
       {filteredHotels.length === 0 ? (
-        <p className="text-gray-600 dark:text-gray-300 text-center mt-8 text-lg">
+        <p style={{ color: "var(--muted)", textAlign: "center", marginTop: "3rem" }}>
           No hotels found.
         </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredHotels.map((hotel) => (
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+          gap: "2rem",
+        }}>
+          {filteredHotels.map(hotel => (
             <div
               key={hotel.id}
-              className="group bg-white dark:bg-gray-800 rounded-2xl shadow-md hover:shadow-2xl transition-transform duration-300 transform hover:-translate-y-1 overflow-hidden flex flex-col justify-between"
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: 2,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                transition: "border-color 0.2s, box-shadow 0.2s",
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = "var(--gold-dim)";
+                e.currentTarget.style.boxShadow = "0 8px 32px rgba(0,0,0,0.5)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = "var(--border)";
+                e.currentTarget.style.boxShadow = "none";
+              }}
             >
-              <div className="w-full aspect-[4/3] bg-gray-100 rounded-t-2xl overflow-hidden flex items-center justify-center">
+              {/* Image */}
+              <div style={{ width: "100%", aspectRatio: "4/3", overflow: "hidden", background: "var(--bg)" }}>
                 <img
                   src={getImageUrl(hotel.image || "hotels/default-image.jpg")}
                   alt={hotel.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.5s ease" }}
+                  onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"}
+                  onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
                 />
               </div>
 
-              <div className="p-6 flex flex-col justify-between flex-1">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">
-                    {hotel.name}
-                  </h3>
-                  {hotel.address && (
-                    <p className="text-gray-500 dark:text-gray-300 text-sm line-clamp-3">
-                      {hotel.address}
-                    </p>
-                  )}
+              {/* Content */}
+              <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", flex: 1 }}>
+                <h3 style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "1.3rem", fontWeight: 400,
+                  color: "var(--text)", marginBottom: "0.4rem",
+                }}>
+                  {hotel.name}
+                </h3>
 
-                  <div className="mt-2 flex gap-2 flex-wrap">
-                    {hotel.rooms_count > 0 && (
-                      <span className="px-2 py-1 text-xs bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-100 rounded-full">
-                        {hotel.rooms_count} Rooms
-                      </span>
-                    )}
-                    {hotel.food_count > 0 && (
-                      <span className="px-2 py-1 text-xs bg-yellow-200 dark:bg-yellow-700 text-yellow-800 dark:text-yellow-100 rounded-full">
-                        {hotel.food_count} Menu Items
-                      </span>
-                    )}
-                  </div>
+                {hotel.address && (
+                  <p style={{
+                    color: "var(--muted)", fontSize: "0.8rem",
+                    lineHeight: 1.6, marginBottom: "1rem",
+                    display: "-webkit-box", WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical", overflow: "hidden",
+                  }}>
+                    {hotel.address}
+                  </p>
+                )}
+
+                {/* Badges */}
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1.25rem" }}>
+                  {hotel.rooms_count > 0 && (
+                    <span style={{
+                      padding: "0.2rem 0.6rem",
+                      border: "1px solid var(--gold-dim)",
+                      color: "var(--gold)",
+                      fontSize: "0.65rem", letterSpacing: "0.1em",
+                    }}>
+                      {hotel.rooms_count} Rooms
+                    </span>
+                  )}
+                  {hotel.food_count > 0 && (
+                    <span style={{
+                      padding: "0.2rem 0.6rem",
+                      border: "1px solid var(--border)",
+                      color: "var(--muted)",
+                      fontSize: "0.65rem", letterSpacing: "0.1em",
+                    }}>
+                      {hotel.food_count} Menu Items
+                    </span>
+                  )}
                 </div>
 
-                <div className="mt-4 flex gap-2">
+                {/* CTA buttons */}
+                <div style={{ display: "flex", gap: "0.75rem", marginTop: "auto" }}>
                   <Link
                     to={`/hotels/${hotel.slug}?product_type=food`}
-                    className="flex-1 text-center bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-full shadow-sm hover:bg-indigo-700 transition-colors"
+                    style={{
+                      flex: 1, textAlign: "center",
+                      padding: "0.5rem",
+                      border: "1px solid var(--gold)",
+                      color: "var(--gold)",
+                      fontSize: "0.65rem", letterSpacing: "0.2em", textTransform: "uppercase",
+                      textDecoration: "none",
+                      transition: "background 0.2s, color 0.2s",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "var(--gold)"; e.currentTarget.style.color = "var(--bg)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--gold)"; }}
                   >
                     View Menu
                   </Link>
-
                   <Link
                     to={`/hotels/${hotel.slug}/rooms?product_type=room`}
-                    className="flex-1 text-center bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-full shadow-sm hover:bg-green-700 transition-colors"
+                    style={{
+                      flex: 1, textAlign: "center",
+                      padding: "0.5rem",
+                      border: "1px solid var(--border)",
+                      color: "var(--muted)",
+                      fontSize: "0.65rem", letterSpacing: "0.2em", textTransform: "uppercase",
+                      textDecoration: "none",
+                      transition: "border-color 0.2s, color 0.2s",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--gold-dim)"; e.currentTarget.style.color = "var(--text)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
                   >
                     View Rooms
                   </Link>
@@ -248,15 +324,6 @@ export default function HotelList() {
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* LOADING OVERLAY */}
-      {actionLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <p className="text-white text-lg font-medium">
-            Processing payment...
-          </p>
         </div>
       )}
     </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, Link, useLocation } from "react-router-dom";
 import HotelList from "./components/HotelList";
 import MenuPage from "./components/MenuPage";
 import RoomsPage from "./components/RoomsPage";
@@ -9,121 +9,321 @@ import RoomBooking from "./components/RoomBooking";
 import ProductLinker from "./components/ProductLinker";
 import ImageUpload from "./components/ImageUpload";
 
-export default function App() {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+// ── CSS tokens (mirror index.html so everything stays in sync) ──────────────
+const T = {
+  bg:       "var(--bg)",
+  surface:  "var(--surface)",
+  border:   "var(--border)",
+  gold:     "var(--gold)",
+  goldDim:  "var(--gold-dim)",
+  text:     "var(--text)",
+  muted:    "var(--muted)",
+};
 
-  // Safe JWT check
+// ── Protected route ──────────────────────────────────────────────────────────
+function AdminRoute({ isAdmin, children }) {
+  if (!isAdmin) {
+    return (
+      <div style={{ textAlign: "center", marginTop: "6rem", color: T.muted }}>
+        <h2 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: "0.5rem", color: T.text }}>
+          Access Denied
+        </h2>
+        <p style={{ marginBottom: "1.5rem" }}>You don't have permission to view this page.</p>
+        <Link to="/" style={{ color: T.gold, textDecoration: "none", borderBottom: `1px solid ${T.goldDim}` }}>
+          ← Back to Hotels
+        </Link>
+      </div>
+    );
+  }
+  return children;
+}
+
+// ── 404 ──────────────────────────────────────────────────────────────────────
+function NotFound() {
+  return (
+    <div style={{ textAlign: "center", marginTop: "6rem", color: T.muted }}>
+      <h2 style={{
+        fontFamily: "var(--font-display)",
+        fontSize: "clamp(4rem, 10vw, 7rem)",
+        fontWeight: 300,
+        color: T.goldDim,
+        lineHeight: 1,
+        marginBottom: "1rem",
+      }}>
+        404
+      </h2>
+      <p style={{ marginBottom: "2rem", color: T.muted, letterSpacing: "0.1em" }}>
+        Page not found
+      </p>
+      <Link to="/" style={{ color: T.gold, textDecoration: "none", borderBottom: `1px solid ${T.goldDim}` }}>
+        ← Back to Hotels
+      </Link>
+    </div>
+  );
+}
+
+// ── App ──────────────────────────────────────────────────────────────────────
+export default function App() {
+  const [isAdmin, setIsAdmin]   = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+
+  // Decode JWT and check expiry
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return setIsAdmin(false);
-
     try {
       const parts = token.split(".");
-      if (parts.length !== 3) {
-        setIsAdmin(false);
-        return; // exit silently
-      }
+      if (parts.length !== 3) return setIsAdmin(false);
       const payload = JSON.parse(atob(parts[1]));
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        localStorage.removeItem("token");
+        return setIsAdmin(false);
+      }
       setIsAdmin(Boolean(payload.is_staff || payload.is_superuser));
-    } catch (err) {
-      setIsAdmin(false); // silently fail
+    } catch {
+      setIsAdmin(false);
     }
   }, []);
 
-  // Dark mode preference
-  useEffect(() => {
-    const stored = localStorage.getItem("darkMode");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const isDark = stored !== null ? stored === "true" : prefersDark;
-    setDarkMode(isDark);
-    document.documentElement.classList.toggle("dark", isDark);
-  }, []);
+  // Close mobile menu on route change
+  useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
-  const toggleDarkMode = () => {
-    setDarkMode(prev => {
-      const newMode = !prev;
-      document.documentElement.classList.toggle("dark", newMode);
-      localStorage.setItem("darkMode", newMode);
-      return newMode;
-    });
-  };
+  const isHome = location.pathname === "/";
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-500">
-      {/* Header */}
-      <header className="sticky top-0 z-50 shadow-md bg-white dark:bg-gray-800 transition-colors duration-500">
-        <div className="container mx-auto flex items-center justify-between p-4">
-          <Link
-            to="/"
-            className="text-2xl font-bold text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
-          >
-            Digital Menu
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+      minHeight: "100dvh",
+      background: T.bg,
+      color: T.text,
+      fontFamily: "var(--font-body)",
+    }}>
+
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <header style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
+        background: "rgba(15,14,12,0.85)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        borderBottom: `1px solid ${T.border}`,
+      }}>
+        <div style={{
+          maxWidth: "1280px",
+          margin: "0 auto",
+          padding: "0 1.5rem",
+          height: "64px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}>
+          {/* Wordmark */}
+          <Link to="/" style={{ textDecoration: "none" }}>
+            <span style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "1.5rem",
+              fontWeight: 300,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: T.text,
+            }}>
+              Digital<em style={{ fontStyle: "italic", color: T.gold }}>&nbsp;Menu</em>
+            </span>
           </Link>
 
-          <div className="flex items-center space-x-4">
-            <nav className="space-x-6 flex items-center">
-              <Link to="/" className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 transition">Hotels</Link>
-              <Link to="/compare" className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 transition">Compare</Link>
-              {/* Admin hidden menu */}
-              {isAdmin && (
-                <Link to="/admin/csv" className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 transition">
-                  CSV Upload
-                </Link>
-              )}
-            </nav>
-
-            {/* Dark/Light Mode Toggle */}
-            <div
-              onClick={toggleDarkMode}
-              className="w-14 h-7 flex items-center bg-gray-300 dark:bg-gray-700 rounded-full p-1 cursor-pointer transition-colors duration-500"
-              title="Toggle Dark/Light Mode"
-            >
-              <div
-                className={`w-5 h-5 bg-white rounded-full shadow-md transform duration-500 ease-in-out ${
-                  darkMode ? "translate-x-7" : "translate-x-0"
-                }`}
-              />
-            </div>
-          </div>
+          {/* Desktop nav */}
+          <nav style={{ display: "flex", alignItems: "center", gap: "2rem" }}
+               aria-label="Main navigation">
+            {[
+              { to: "/",       label: "Hotels" },
+              { to: "/compare", label: "Compare" },
+              ...(isAdmin ? [{ to: "/admin/csv", label: "CSV Upload" }] : []),
+            ].map(({ to, label }) => (
+              <Link
+                key={to}
+                to={to}
+                style={{
+                  textDecoration: "none",
+                  fontSize: "0.75rem",
+                  letterSpacing: "0.15em",
+                  textTransform: "uppercase",
+                  color: location.pathname === to ? T.gold : T.muted,
+                  borderBottom: location.pathname === to
+                    ? `1px solid ${T.gold}` : "1px solid transparent",
+                  paddingBottom: "2px",
+                  transition: "color 0.2s, border-color 0.2s",
+                }}
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="bg-gray-50 dark:bg-gray-800 py-20">
-        <div className="container mx-auto text-center px-4">
-          <h1 className="text-5xl font-extrabold text-gray-900 dark:text-white mb-4">
-            Discover Your Perfect Hotel
-          </h1>
-          <p className="text-lg text-gray-700 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
-            Browse menus, compare prices, and book rooms at the best hotels.
+      {/* ── Hero: home only ─────────────────────────────────────────────── */}
+      {isHome && (
+        <section style={{
+          position: "relative",
+          padding: "7rem 1.5rem 6rem",
+          textAlign: "center",
+          overflow: "hidden",
+        }}>
+          {/* Radial gold glow behind the headline */}
+          <div style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "600px",
+            height: "300px",
+            background: `radial-gradient(ellipse, ${T.goldDim}22 0%, transparent 70%)`,
+            pointerEvents: "none",
+          }} />
+
+          <p style={{
+            fontSize: "0.65rem",
+            letterSpacing: "0.4em",
+            textTransform: "uppercase",
+            color: T.gold,
+            marginBottom: "1.5rem",
+          }}>
+            Hotels &amp; Dining · Eldoret
           </p>
-          <Link
-            to="/"
-            className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-8 py-3 rounded-lg shadow-lg transition"
+
+          <h1 style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(2.5rem, 7vw, 5.5rem)",
+            fontWeight: 300,
+            lineHeight: 1.1,
+            color: T.text,
+            marginBottom: "1.5rem",
+            letterSpacing: "0.02em",
+          }}>
+            Discover Your<br />
+            <em style={{ fontStyle: "italic", color: T.gold }}>Perfect Stay</em>
+          </h1>
+
+          {/* Decorative rule */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.75rem",
+            marginBottom: "1.5rem",
+          }}>
+            <div style={{ width: "40px", height: "1px", background: T.goldDim }} />
+            <div style={{ width: "5px", height: "5px", background: T.gold, transform: "rotate(45deg)" }} />
+            <div style={{ width: "40px", height: "1px", background: T.goldDim }} />
+          </div>
+
+          <p style={{
+            fontSize: "1rem",
+            color: T.muted,
+            maxWidth: "480px",
+            margin: "0 auto 2.5rem",
+            lineHeight: 1.7,
+            fontWeight: 300,
+          }}>
+            Browse menus, compare prices, and book rooms at the finest hotels in Eldoret.
+          </p>
+
+          <a
+            href="#hotel-list"
+            style={{
+              display: "inline-block",
+              padding: "0.75rem 2.5rem",
+              background: "transparent",
+              border: `1px solid ${T.gold}`,
+              color: T.gold,
+              fontSize: "0.7rem",
+              letterSpacing: "0.25em",
+              textTransform: "uppercase",
+              textDecoration: "none",
+              transition: "background 0.2s, color 0.2s",
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = T.gold;
+              e.currentTarget.style.color = T.bg;
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = T.gold;
+            }}
           >
             Browse Hotels
-          </Link>
-        </div>
-      </section>
+          </a>
+        </section>
+      )}
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-12 flex-1">
+      {/* ── Thin gold divider ────────────────────────────────────────────── */}
+      {isHome && (
+        <div style={{ height: "1px", background: `linear-gradient(to right, transparent, ${T.goldDim}, transparent)` }} />
+      )}
+
+      {/* ── Main ────────────────────────────────────────────────────────── */}
+      <main id="hotel-list" style={{ flex: 1, maxWidth: "1280px", width: "100%", margin: "0 auto", padding: "3rem 1.5rem" }}>
         <Routes>
-          <Route path="/" element={<HotelList />} />
-          <Route path="/hotels/:slug" element={<MenuPage />} />
-          <Route path="/hotels/:slug/rooms" element={<RoomsPage />} />
-          <Route path="/compare" element={<ComparePage />} />
-          {isAdmin && <Route path="/admin/csv" element={<CsvUpload />} />}
-          <Route path="/book/:roomId" element={<RoomBooking />} />
-          <Route path="/product/:id/link" element={<ProductLinker />} />
-          <Route path="/product/:id/image" element={<ImageUpload />} />
+          <Route path="/"                   element={<HotelList />} />
+          <Route path="/hotels/:slug"        element={<MenuPage />} />
+          <Route path="/hotels/:slug/rooms"  element={<RoomsPage />} />
+          <Route path="/compare"             element={<ComparePage />} />
+          <Route
+            path="/admin/csv"
+            element={
+              <AdminRoute isAdmin={isAdmin}>
+                <CsvUpload />
+              </AdminRoute>
+            }
+          />
+          <Route path="/book/:roomId"        element={<RoomBooking />} />
+          <Route path="/product/:id/link"    element={<ProductLinker />} />
+          <Route path="/product/:id/image"   element={<ImageUpload />} />
+          <Route path="*"                    element={<NotFound />} />
         </Routes>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white dark:bg-gray-800 border-t dark:border-gray-700 py-8 text-center text-gray-700 dark:text-gray-400 transition-colors duration-500">
-        &copy; 2025 Digital Menu. All rights reserved.
+      {/* ── Footer ──────────────────────────────────────────────────────── */}
+      <footer style={{
+        borderTop: `1px solid ${T.border}`,
+        padding: "2.5rem 1.5rem",
+        textAlign: "center",
+      }}>
+        {/* Decorative rule above text */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "0.75rem",
+          marginBottom: "1.25rem",
+        }}>
+          <div style={{ width: "30px", height: "1px", background: T.border }} />
+          <div style={{ width: "4px", height: "4px", background: T.goldDim, transform: "rotate(45deg)" }} />
+          <div style={{ width: "30px", height: "1px", background: T.border }} />
+        </div>
+
+        <p style={{
+          fontFamily: "var(--font-display)",
+          fontSize: "1.1rem",
+          fontWeight: 300,
+          letterSpacing: "0.15em",
+          color: T.muted,
+          marginBottom: "0.5rem",
+        }}>
+          Digital <em style={{ fontStyle: "italic", color: T.goldDim }}>Menu</em>
+        </p>
+
+        <p style={{
+          fontSize: "0.65rem",
+          letterSpacing: "0.2em",
+          textTransform: "uppercase",
+          color: T.border,
+        }}>
+          &copy; {new Date().getFullYear()} · All rights reserved · Eldoret
+        </p>
       </footer>
     </div>
   );

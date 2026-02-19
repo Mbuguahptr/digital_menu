@@ -1,138 +1,80 @@
-import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import React, { useEffect, useState, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import getImageUrl from "../utils/getImageUrl";
 
-function useQuery() {
-  return new URLSearchParams(useLocation().search);
-}
+const API = import.meta.env.VITE_API_BASE ?? "/api";
 
 export default function ComparePage() {
-  const query = useQuery();
-  const initialName = query.get("name") || "";
+  const location = useLocation();
+  const navigate = useNavigate();
+  const params = new URLSearchParams(location.search);
+  const sku = params.get("sku");
+  const name = params.get("name");
 
-  const [name, setName] = useState(initialName);
-  const [items, setItems] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
 
-  const fetchComparison = () => {
-    if (!name) {
-      setItems([]);
-      return;
-    }
-
-    const source = axios.CancelToken.source();
+  const fetchComparison = useCallback(async () => {
+    if (!sku && !name) return;
     setLoading(true);
-    setError(null);
+    setError("");
+    try {
+      const query = sku ? `sku=${encodeURIComponent(sku)}` : `name=${encodeURIComponent(name)}`;
+      const res = await axios.get(`${API}/products/compare/?${query}`);
+      setProducts(res.data);
+    } catch {
+      setError("Failed to load comparison data.");
+    } finally {
+      setLoading(false);
+    }
+  }, [sku, name]);
 
-    const API_BASE = "/api"; // relative path for frontend inside backend
+  useEffect(() => { fetchComparison(); }, [fetchComparison]);
 
-    const params = new URLSearchParams();
-    params.append("name", name);
-
-    axios
-      .get(`${API_BASE}/products/compare/?${params.toString()}`, {
-        cancelToken: source.token,
-      })
-      .then((res) => {
-        setItems(Array.isArray(res.data) ? res.data : []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (!axios.isCancel(err)) {
-          console.error(err);
-          setError("Failed to fetch comparison data.");
-          setLoading(false);
-        }
-      });
-
-    return () => source.cancel();
-  };
-
-  useEffect(() => {
-    if (name) fetchComparison();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // initial fetch if query param exists
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchComparison();
+  const updateQuery = (field, value) => {
+    const p = new URLSearchParams(location.search);
+    if (value) p.set(field, value); else p.delete(field);
+    navigate({ search: p.toString() }, { replace: true });
   };
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-800 min-h-screen p-6">
-      <h2 className="text-3xl font-bold mb-6 text-gray-800 dark:text-gray-100 text-center">
+    <div style={{ maxWidth: 900, margin: "0 auto" }}>
+      <h2 style={{ fontFamily: "var(--font-display)", fontSize: "2rem", fontWeight: 300, marginBottom: "1.5rem", color: "var(--text)" }}>
         Compare Products
       </h2>
-
-      {/* Search Bar */}
-      <form
-        onSubmit={handleSearch}
-        className="flex justify-center items-center mb-6"
-      >
+      <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem" }}>
         <input
-          type="text"
-          placeholder="Product Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="p-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 w-full sm:w-64"
+          placeholder="Search by SKU..."
+          defaultValue={sku || ""}
+          onBlur={e => updateQuery("sku", e.target.value)}
+          onKeyDown={e => e.key === "Enter" && updateQuery("sku", e.target.value)}
+          style={{ flex: 1 }}
         />
-        <button
-          type="submit"
-          className="ml-3 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow"
-        >
-          Search
-        </button>
-      </form>
-
-      {/* Messages */}
-      {!name && (
-        <div className="text-center text-gray-500 dark:text-gray-400 mt-10">
-          Please enter a product name to search.
-        </div>
+        <input
+          placeholder="Search by name..."
+          defaultValue={name || ""}
+          onBlur={e => updateQuery("name", e.target.value)}
+          onKeyDown={e => e.key === "Enter" && updateQuery("name", e.target.value)}
+          style={{ flex: 1 }}
+        />
+      </div>
+      {loading && <p style={{ color: "var(--muted)" }}>Loading...</p>}
+      {error && <p style={{ color: "#e05" }}>{error}</p>}
+      {!loading && !error && products.length === 0 && (sku || name) && (
+        <p style={{ color: "var(--muted)" }}>No products found.</p>
       )}
-      {loading && (
-        <p className="text-center text-gray-600 dark:text-gray-300 mt-10">
-          Loading comparison...
-        </p>
-      )}
-      {error && (
-        <p className="text-center text-red-500 dark:text-red-400 mt-10">
-          {error}
-        </p>
-      )}
-      {!loading && !error && items.length === 0 && name && (
-        <p className="text-center text-gray-500 dark:text-gray-400 mt-10">
-          No matching products found.
-        </p>
-      )}
-
-      {/* Comparison Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {items.map((it) => (
-          <div
-            key={it.id}
-            className="bg-white dark:bg-gray-700 p-4 rounded-xl shadow hover:shadow-lg transition-shadow"
-          >
-            {it.image && (
-              <img
-                src={getImageUrl(it.image)}
-                alt={it.name}
-                className="w-full h-40 object-cover rounded-t-xl mb-4"
-              />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "1.5rem" }}>
+        {products.map(p => (
+          <div key={p.id} className="card">
+            {p.image && (
+              <img src={getImageUrl(p.image)} alt={p.name}
+                style={{ width: "100%", height: 160, objectFit: "cover", marginBottom: "1rem", borderRadius: 2 }} />
             )}
-            <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-100 mb-2">
-              {it.hotel.name}
-            </h3>
-            <p className="text-indigo-600 font-bold text-xl mb-2">
-              {it.price} {it.currency}
-            </p>
-            {it.description && (
-              <p className="text-gray-600 dark:text-gray-300 text-sm">
-                {it.description}
-              </p>
-            )}
+            <p style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", color: "var(--text)", marginBottom: "0.25rem" }}>{p.name}</p>
+            <p style={{ color: "var(--gold)", fontWeight: 500, marginBottom: "0.25rem" }}>{p.currency} {p.price}</p>
+            <p style={{ color: "var(--muted)", fontSize: "0.8rem" }}>{p.hotel?.name}</p>
           </div>
         ))}
       </div>

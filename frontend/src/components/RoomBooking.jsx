@@ -1,32 +1,42 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useLocation } from "react-router-dom";
-
-// VITE-compatible API base
-const API_BASE = "/api";
+import { API_BASE, validateAndNormalisePhone } from "./api";
 
 export default function RoomBooking() {
   const { roomId } = useParams();
   const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const hotelSlug = searchParams.get("hotel");
+  const hotelSlug = new URLSearchParams(location.search).get("hotel");
 
   const [product, setProduct] = useState(null);
+  const [fetchError, setFetchError] = useState(null); // separate from action error
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [available, setAvailable] = useState(null);
   const [checking, setChecking] = useState(false);
   const [message, setMessage] = useState(null);
-  const [error, setError] = useState(null);
+  const [actionError, setActionError] = useState(null);
   const [totalPrice, setTotalPrice] = useState(0);
-
   const [phone, setPhone] = useState("");
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [checkoutId, setCheckoutId] = useState(null);
-  const [paymentStatus, setPaymentStatus] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState(null); // "pending"|"success"|"failed"
 
-  // ---------------- FETCH ROOM ----------------
-  const fetchProduct = async () => {
-    if (!roomId || !hotelSlug) return setError("Invalid room or hotel.");
+  // Ref so pollPaymentStatus never goes stale (avoids stale-closure issues).
+  const paymentStatusRef = useRef(paymentStatus);
+  useEffect(() => {
+    paymentStatusRef.current = paymentStatus;
+  }, [paymentStatus]);
+
+  // ── Today's date string for min= attributes ────────────────────────────────
+  const today = new Date().toISOString().split("T")[0];
+
+  // ── Fetch room ─────────────────────────────────────────────────────────────
+  // useCallback so it can be called both from useEffect and after a successful payment.
+  const fetchProduct = useCallback(async () => {
+    if (!roomId || !hotelSlug) {
+      setFetchError("Invalid room or hotel.");
+      return;
+    }
 
     try {
       const res = await fetch(
@@ -38,42 +48,47 @@ export default function RoomBooking() {
       const room = data.results.find((p) => p.id === Number(roomId));
       if (!room) throw new Error("Room not found");
 
-      room.price = Number(room.price); // ensure numeric
+      room.price = Number(room.price);
       setProduct(room);
-      setError(null);
+      setFetchError(null);
     } catch (err) {
       console.error(err);
-      setError(err.message);
+      setFetchError(err.message);
       setProduct(null);
     }
-  };
+  }, [roomId, hotelSlug]);
 
   useEffect(() => {
     fetchProduct();
-  }, [roomId, hotelSlug]);
+  }, [fetchProduct]);
 
-  // ---------------- CALCULATE TOTAL PRICE ----------------
+  // ── Total price ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (start && end && product?.price) {
-      const nights = Math.max(
-        1,
-        Math.round(
-          (new Date(end).getTime() - new Date(start).getTime()) /
-            (1000 * 60 * 60 * 24)
-        )
+      const nights = Math.round(
+        (new Date(end).getTime() - new Date(start).getTime()) /
+          (1000 * 60 * 60 * 24)
       );
-      setTotalPrice(product.price * nights);
+      // FIX: reject invalid ranges (check-out before or equal to check-in)
+      setTotalPrice(nights > 0 ? product.price * nights : 0);
     } else {
       setTotalPrice(0);
     }
   }, [start, end, product]);
 
-  // ---------------- CHECK AVAILABILITY ----------------
+  // ── Check availability ─────────────────────────────────────────────────────
   const checkAvailability = async () => {
-    if (!start || !end)
-      return setError("Please select both start and end dates.");
+    if (!start || !end) {
+      setActionError("Please select both check-in and check-out dates.");
+      return;
+    }
+    if (new Date(end) <= new Date(start)) {
+      setActionError("Check-out must be after check-in.");
+      return;
+    }
+
     setChecking(true);
-    setError(null);
+    setActionError(null);
     setMessage(null);
 
     try {
@@ -89,24 +104,87 @@ export default function RoomBooking() {
       );
     } catch (err) {
       console.error(err);
-      setError("Failed to check availability.");
+      setActionError("Failed to check availability.");
     } finally {
       setChecking(false);
     }
   };
 
-  // ---------------- MPESA STK PUSH ----------------
+  // ── Poll payment status ────────────────────────────────────────────────────
+  // Returns a promise that resolves when polling is complete.
+  const pollPaymentStatus = async (paymentId, interval = 5000, attempts = 6) => {
+    setPaymentStatus("pending");
+
+    for (let i = 0; i < attempts; i++) {
+      await new Promise((r) => setTimeout(r, interval));
+
+      try {
+        const res = await fetch(
+          `${API_BASE}/payments/status/?payment_id=${paymentId}`
+        );
+        const data = await res.json();
+
+        if (!res.ok) {
+          setActionError(data.detail || "Failed to check payment status.");
+          setPaymentStatus("failed");
+          return;
+        }
+
+        if (data.status === "success") {
+          setPaymentStatus("success");
+          setMessage("Payment successful! Your booking is confirmed.");
+          fetchProduct(); // refresh room data
+          return;
+        }
+
+        if (data.status === "failed") {
+          setPaymentStatus("failed");
+          setActionError("Payment was declined. Please try again.");
+          return;
+        }
+      } catch (err) {
+        console.error(err);
+        setActionError("Error while checking payment status.");
+        setPaymentStatus("failed");
+        return;
+      }
+    }
+
+    // Timed out without a definitive status
+    setMessage(
+      "Payment is taking longer than expected. Please check your M-Pesa messages."
+    );
+    setPaymentStatus(null);
+  };
+
+  // ── M-Pesa STK push ───────────────────────────────────────────────────────
   const startMpesaPayment = async () => {
-    if (!available) return setError("Check availability first.");
-    if (!phone) return setError("Enter phone number (2547XXXXXXXX).");
+    setActionError(null);
+    setMessage(null);
+
+    if (!available) {
+      setActionError("Please check availability before paying.");
+      return;
+    }
+    if (totalPrice <= 0) {
+      setActionError("Invalid total price. Check your selected dates.");
+      return;
+    }
+
+    // FIX: validate and normalise phone before sending
+    const { valid, phone: normalisedPhone } = validateAndNormalisePhone(phone);
+    if (!valid) {
+      setActionError(
+        "Enter a valid Kenyan phone number (e.g. 0712345678 or 254712345678)."
+      );
+      return;
+    }
 
     setPaymentLoading(true);
-    setError(null);
-    setMessage(null);
 
     try {
       const payload = {
-        phone,
+        phone: normalisedPhone,
         product_id: product.id,
         hotel_slug: hotelSlug,
         check_in: start,
@@ -121,66 +199,45 @@ export default function RoomBooking() {
       });
 
       const data = await res.json();
+
       if (!res.ok) {
-        setError(data.detail || "Failed to initiate payment.");
-        setPaymentLoading(false);
-        return;
+        setActionError(data.detail || "Failed to initiate payment.");
+        return; // finally will still run
       }
 
       setCheckoutId(data.checkout_request_id);
       setMessage("STK Push sent. Complete payment on your phone.");
-      pollPaymentStatus(data.payment_id, 5000, 6);
+
+      // FIX: await polling so paymentLoading stays true for its duration.
+      await pollPaymentStatus(data.payment_id, 5000, 6);
     } catch (err) {
       console.error(err);
-      setError("Network error starting payment.");
+      setActionError("Network error starting payment.");
     } finally {
+      // FIX: paymentLoading is cleared only after polling is done.
       setPaymentLoading(false);
     }
   };
 
-  const pollPaymentStatus = async (paymentId, interval = 5000, attempts = 6) => {
-    setPaymentStatus("pending");
-    for (let i = 0; i < attempts; i++) {
-      try {
-        const res = await fetch(`${API_BASE}/payments/status/?payment_id=${paymentId}`);
-        const data = await res.json();
-        if (!res.ok) {
-          setError(data.detail || "Failed to check payment status.");
-          return;
-        }
-        if (data.status === "success") {
-          setPaymentStatus("success");
-          setMessage("Payment successful! Booking confirmed.");
-          fetchProduct();
-          return;
-        } else if (data.status === "failed") {
-          setPaymentStatus("failed");
-          setError("Payment failed. Try again.");
-          return;
-        }
-        setPaymentStatus("pending");
-      } catch (err) {
-        console.error(err);
-        setError("Failed to poll payment status.");
-        return;
-      }
-      await new Promise((r) => setTimeout(r, interval));
-    }
-    setMessage("Payment is taking longer than expected.");
-  };
+  // ── Render guards — product check first, then error ────────────────────────
+  // FIX: check !product before fetchError so we don't show a blank screen
+  // when error clears but product hasn't loaded yet.
+  if (!product && !fetchError)
+    return <p className="text-center mt-8 text-gray-600 dark:text-gray-300">Loading...</p>;
 
-  if (error) return <p className="text-center mt-8 text-red-500">{error}</p>;
-  if (!product) return <p className="text-center mt-8">Loading...</p>;
+  if (fetchError)
+    return <p className="text-center mt-8 text-red-500">{fetchError}</p>;
 
   return (
     <div className="max-w-xl mx-auto mt-12 p-6 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-3xl shadow-2xl border border-white/10">
+      {/* Room header */}
       <div className="flex items-center justify-between gap-4 mb-6">
         <div>
           <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             {product.name}
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-300">
-            {product.hotel?.name || hotelSlug} • {product.currency}{" "}
+            {product.hotel?.name ?? hotelSlug} &bull; {product.currency}{" "}
             <span className="font-semibold">{product.price.toFixed(2)}</span> /
             night
           </p>
@@ -198,35 +255,65 @@ export default function RoomBooking() {
         </div>
       </div>
 
-      {/* Dates */}
+      {/* Date pickers */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <div>
-          <label className="block text-xs text-gray-600 dark:text-gray-300 mb-1">Check-in</label>
+          <label
+            htmlFor="check-in"
+            className="block text-xs text-gray-600 dark:text-gray-300 mb-1"
+          >
+            Check-in
+          </label>
           <input
+            id="check-in"
             type="date"
+            min={today} // FIX: prevent past dates
             value={start}
-            onChange={(e) => setStart(e.target.value)}
+            onChange={(e) => {
+              setStart(e.target.value);
+              // Reset check-out if it's now before or equal to new check-in
+              if (end && end <= e.target.value) setEnd("");
+              setAvailable(null);
+            }}
             className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
           />
         </div>
 
         <div>
-          <label className="block text-xs text-gray-600 dark:text-gray-300 mb-1">Check-out</label>
+          <label
+            htmlFor="check-out"
+            className="block text-xs text-gray-600 dark:text-gray-300 mb-1"
+          >
+            Check-out
+          </label>
           <input
+            id="check-out"
             type="date"
+            // FIX: check-out must be strictly after check-in
+            min={start || today}
             value={end}
-            onChange={(e) => setEnd(e.target.value)}
+            onChange={(e) => {
+              setEnd(e.target.value);
+              setAvailable(null);
+            }}
             className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
           />
         </div>
       </div>
 
-      {/* Availability & price */}
+      {/* Validity warning */}
+      {start && end && new Date(end) <= new Date(start) && (
+        <p className="text-amber-600 text-xs mb-3">
+          Check-out must be after check-in.
+        </p>
+      )}
+
+      {/* Availability & price summary */}
       <div className="flex items-center justify-between gap-4 mb-6">
         <button
           onClick={checkAvailability}
-          disabled={checking}
-          className="px-5 py-2 rounded-full bg-indigo-600 text-white font-medium shadow hover:scale-[1.02] transition"
+          disabled={checking || !start || !end || new Date(end) <= new Date(start)}
+          className="px-5 py-2 rounded-full bg-indigo-600 text-white font-medium shadow hover:scale-[1.02] transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {checking ? "Checking..." : "Check Availability"}
         </button>
@@ -234,25 +321,36 @@ export default function RoomBooking() {
         <div className="text-right">
           <p className="text-sm text-gray-500">Total</p>
           <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
-            {product.currency} {totalPrice > 0 ? totalPrice.toFixed(2) : "—"}
+            {product.currency}{" "}
+            {totalPrice > 0 ? totalPrice.toFixed(2) : "\u2014"}
           </p>
         </div>
       </div>
 
-      {/* Payment */}
+      {/* Payment section */}
       {available && (
         <div className="p-4 rounded-2xl bg-white/40 dark:bg-black/40 border border-white/10 mb-4">
           <h4 className="text-sm font-semibold mb-2 text-gray-800 dark:text-gray-200">
-            Secure your booking — Pay with M-Pesa
+            Secure your booking &mdash; Pay with M-Pesa
           </h4>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-            <input
-              placeholder="Phone (2547XXXXXXXX)"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
-            />
+            <div>
+              <label
+                htmlFor="booking-phone"
+                className="block text-xs text-gray-500 mb-1"
+              >
+                Phone (2547XXXXXXXX)
+              </label>
+              <input
+                id="booking-phone"
+                type="tel"
+                placeholder="0712 345 678"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+              />
+            </div>
             <div className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between">
               <div>
                 <div className="text-xs text-gray-500">Amount</div>
@@ -267,15 +365,17 @@ export default function RoomBooking() {
             <button
               onClick={startMpesaPayment}
               disabled={paymentLoading}
-              className="flex-1 px-4 py-3 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-black font-semibold shadow"
+              className="flex-1 px-4 py-3 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-black font-semibold shadow disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {paymentLoading ? "Requesting STK..." : "Pay with M-Pesa"}
+              {paymentLoading ? "Processing..." : "Pay with M-Pesa"}
             </button>
             <button
               onClick={() => {
                 setPhone("");
                 setMessage(null);
                 setCheckoutId(null);
+                setPaymentStatus(null);
+                setActionError(null);
               }}
               className="px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/40"
             >
@@ -285,9 +385,11 @@ export default function RoomBooking() {
 
           {checkoutId && (
             <div className="mt-3 text-sm text-gray-700 dark:text-gray-300">
-              STK Checkout ID: <span className="font-mono">{checkoutId}</span>
+              STK Checkout ID:{" "}
+              <span className="font-mono">{checkoutId}</span>
             </div>
           )}
+
           {paymentStatus && (
             <div className="mt-2 text-sm">
               Payment status:{" "}
@@ -307,10 +409,17 @@ export default function RoomBooking() {
         </div>
       )}
 
-      {message && <div className="text-center text-green-600 mb-2">{message}</div>}
+      {message && (
+        <div className="text-center text-green-600 dark:text-green-400 mb-2 text-sm">
+          {message}
+        </div>
+      )}
+      {actionError && (
+        <div className="text-center text-red-500 mb-2 text-sm">{actionError}</div>
+      )}
       {available === false && (
-        <div className="text-center text-red-500 mb-2">
-          Not available for selected dates
+        <div className="text-center text-red-500 mb-2 text-sm">
+          Not available for the selected dates.
         </div>
       )}
     </div>

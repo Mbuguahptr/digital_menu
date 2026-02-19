@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import getImageUrl from "../utils/getImageUrl";
-
-const API_BASE = "";
+import { API_BASE } from "./api";
 
 export default function RoomsPage() {
   const { slug } = useParams();
@@ -11,28 +10,58 @@ export default function RoomsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Track mounted state so we never call setState after unmount.
+  const mountedRef = useRef(true);
   useEffect(() => {
-    const cancelToken = axios.CancelToken.source();
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
-    const fetchRooms = async (url) => {
+  useEffect(() => {
+    const cancelSource = axios.CancelToken.source();
+    mountedRef.current = true;
+
+    const allRooms = []; // accumulate all pages before committing to state
+
+    const fetchPage = async (url) => {
+      const res = await axios.get(url, { cancelToken: cancelSource.token });
+
+      // FIX: removed console.log debug statement
+      const fetched = Array.isArray(res.data.results)
+        ? res.data.results
+        : Array.isArray(res.data)
+        ? res.data
+        : [];
+
+      allRooms.push(...fetched);
+
+      // Paginate if there are more pages
+      if (res.data.next) {
+        await fetchPage(res.data.next);
+      }
+    };
+
+    const run = async () => {
       try {
-        const res = await axios.get(url, { cancelToken: cancelToken.token });
-        console.log("Rooms API response:", res.data);
+        setRooms([]);
+        setLoading(true);
+        setError(null);
 
-        const fetchedRooms = Array.isArray(res.data.results)
-          ? res.data.results
-          : Array.isArray(res.data)
-          ? res.data
-          : [];
+        await fetchPage(
+          `${API_BASE}/products/?hotel_slug=${slug}&product_type=room`
+        );
 
-        setRooms((prev) => [...prev, ...fetchedRooms]);
-        setLoading(false);
-
-        if (res.data.next) {
-          await fetchRooms(res.data.next);
+        // FIX: set state once — after all pages are done, and only if still mounted.
+        // Previously setLoading(false) was called after the first page, causing
+        // the skeleton to disappear while remaining pages were still loading.
+        if (mountedRef.current) {
+          setRooms(allRooms);
+          setLoading(false);
         }
       } catch (err) {
-        if (!axios.isCancel(err)) {
+        if (axios.isCancel(err)) return;
+        if (mountedRef.current) {
           console.error(err);
           setError("Failed to load rooms.");
           setLoading(false);
@@ -40,16 +69,9 @@ export default function RoomsPage() {
       }
     };
 
-    setRooms([]);
-    setLoading(true);
-    setError(null);
+    run();
 
-    const productType = "room";
-    fetchRooms(
-      `${API_BASE}/api/products/?hotel_slug=${slug}&product_type=${productType}`
-    );
-
-    return () => cancelToken.cancel();
+    return () => cancelSource.cancel();
   }, [slug]);
 
   if (loading) {
@@ -104,7 +126,7 @@ export default function RoomsPage() {
               ) : (
                 <div className="text-white font-semibold">No Image</div>
               )}
-              <div className="absolute inset-0 bg-black opacity-10 pointer-events-none"></div>
+              <div className="absolute inset-0 bg-black opacity-10 pointer-events-none" />
             </div>
 
             <div className="p-6 flex flex-col justify-between flex-grow">
@@ -127,7 +149,6 @@ export default function RoomsPage() {
                 )}
               </div>
 
-              {/* Updated Book Now link */}
               <Link
                 to={`/book/${room.id}?hotel=${slug}`}
                 className="mt-4 block bg-indigo-600 text-white text-center py-2 rounded-xl font-medium hover:bg-indigo-700 transition shadow-sm"
