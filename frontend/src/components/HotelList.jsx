@@ -116,7 +116,7 @@ export default function HotelList() {
           textTransform: "uppercase", color: "var(--gold)",
           marginBottom: "0.75rem",
         }}>
-          Eldoret's Finest
+          Kenya's Finest
         </p>
         <h2 style={{
           fontFamily: "var(--font-display)",

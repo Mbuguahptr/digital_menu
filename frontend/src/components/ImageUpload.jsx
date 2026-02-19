@@ -16,31 +16,25 @@ export default function ImageUpload({ onSuccess }) {
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
     if (!selected) return;
-
     if (!selected.type.startsWith("image/")) {
       setError("Please select a valid image file (JPEG, PNG, WebP, etc.).");
       setFile(null);
       setPreview(null);
       return;
     }
-
-    // FIX: validate file size before upload attempt
     if (selected.size > MAX_FILE_SIZE_BYTES) {
       setError(`Image is too large. Maximum size is ${MAX_FILE_SIZE_MB} MB.`);
       setFile(null);
       setPreview(null);
       return;
     }
-
     setFile(selected);
-    // Revoke any previous object URL to avoid memory leaks
     if (preview) URL.revokeObjectURL(preview);
     setPreview(URL.createObjectURL(selected));
     setError(null);
     setMessage(null);
   };
 
-  // Revoke object URL on unmount
   React.useEffect(() => {
     return () => {
       if (preview) URL.revokeObjectURL(preview);
@@ -53,24 +47,18 @@ export default function ImageUpload({ onSuccess }) {
       setError("Please select an image first.");
       return;
     }
-
     setLoading(true);
     setError(null);
     setMessage(null);
-
     const formData = new FormData();
     formData.append("image", file);
-
     try {
-      // FIX: apiFetch handles missing/expired tokens explicitly
       const res = await apiFetch(
         `/products/${id}/upload_image/`,
         { method: "POST", body: formData },
-        true // auth required
+        true,
       );
-
       const data = await res.json();
-
       if (!res.ok) {
         setError(data.detail || "Upload failed. Please try again.");
       } else {
@@ -81,7 +69,6 @@ export default function ImageUpload({ onSuccess }) {
       if (err.message === "AUTH_MISSING" || err.code === "UNAUTHORIZED") {
         setError("Your session has expired. Please log in again.");
       } else {
-        console.error(err);
         setError("Network error. Please try again.");
       }
     } finally {
@@ -90,55 +77,152 @@ export default function ImageUpload({ onSuccess }) {
   };
 
   return (
-    <div className="p-6 bg-white dark:bg-gray-700 rounded-xl shadow-md max-w-md mx-auto transition hover:shadow-lg">
-      <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-100">
-        Upload Product Image
-      </h2>
-
-      {/* FIX: label linked to input via htmlFor/id for accessibility */}
-      <label
-        htmlFor="image-upload-input"
-        className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1"
-      >
-        Choose image{" "}
-        <span className="text-xs text-gray-400">(max {MAX_FILE_SIZE_MB} MB)</span>
-      </label>
-      <input
-        id="image-upload-input"
-        type="file"
-        accept="image/*"
-        onChange={handleFileChange}
-        className="mb-4 w-full text-gray-700 dark:text-gray-200"
-      />
-
-      {preview && (
-        <img
-          src={preview}
-          alt="Preview"
-          className="h-36 w-full object-cover rounded mb-4 border border-gray-300 dark:border-gray-600"
-        />
-      )}
-
-      {file && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          {file.name} &mdash; {(file.size / 1024).toFixed(1)} KB
+    <div style={{ maxWidth: 480, margin: "3rem auto", padding: "0 1.5rem" }}>
+      {/* Header */}
+      <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+        <p
+          style={{
+            fontSize: "0.65rem",
+            letterSpacing: "0.4em",
+            textTransform: "uppercase",
+            color: "var(--gold)",
+            marginBottom: "0.4rem",
+          }}
+        >
+          Admin
         </p>
-      )}
+        <h2
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(1.6rem, 4vw, 2.2rem)",
+            fontWeight: 300,
+            color: "var(--text)",
+          }}
+        >
+          Upload{" "}
+          <em style={{ fontStyle: "italic", color: "var(--gold)" }}>Image</em>
+        </h2>
+      </div>
 
-      <button
-        onClick={upload}
-        disabled={loading || !file}
-        className="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+      <div
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          padding: "1.75rem",
+        }}
       >
-        {loading ? "Uploading..." : "Upload"}
-      </button>
+        <label
+          htmlFor="image-upload-input"
+          style={{
+            fontSize: "0.65rem",
+            letterSpacing: "0.15em",
+            textTransform: "uppercase",
+            color: "var(--muted)",
+            display: "block",
+            marginBottom: "0.5rem",
+          }}
+        >
+          Choose image{" "}
+          <span style={{ color: "var(--border)" }}>
+            (max {MAX_FILE_SIZE_MB} MB)
+          </span>
+        </label>
+        <input
+          id="image-upload-input"
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          style={{
+            width: "100%",
+            color: "var(--muted)",
+            fontSize: "0.8rem",
+            background: "var(--bg)",
+            border: "1px solid var(--border)",
+            padding: "0.6rem 0.75rem",
+            boxSizing: "border-box",
+            marginBottom: "1rem",
+          }}
+        />
 
-      {message && (
-        <p className="text-green-600 dark:text-green-400 mt-4 text-sm">{message}</p>
-      )}
-      {error && (
-        <p className="text-red-500 dark:text-red-400 mt-4 text-sm">{error}</p>
-      )}
+        {preview && (
+          <div
+            style={{
+              width: "100%",
+              height: 200,
+              overflow: "hidden",
+              marginBottom: "0.75rem",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <img
+              src={preview}
+              alt="Preview"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          </div>
+        )}
+
+        {file && (
+          <p
+            style={{
+              fontSize: "0.7rem",
+              color: "var(--muted)",
+              marginBottom: "1rem",
+            }}
+          >
+            {file.name} — {(file.size / 1024).toFixed(1)} KB
+          </p>
+        )}
+
+        <button
+          onClick={upload}
+          disabled={loading || !file}
+          style={{
+            width: "100%",
+            padding: "0.7rem",
+            background: loading || !file ? "transparent" : "var(--gold)",
+            border: "1px solid var(--gold)",
+            color: loading || !file ? "var(--gold-dim)" : "var(--bg)",
+            fontSize: "0.7rem",
+            letterSpacing: "0.25em",
+            textTransform: "uppercase",
+            cursor: loading || !file ? "not-allowed" : "pointer",
+            opacity: loading || !file ? 0.5 : 1,
+            transition: "background 0.2s, color 0.2s",
+          }}
+        >
+          {loading ? "Uploading..." : "Upload"}
+        </button>
+
+        {message && (
+          <div
+            style={{
+              marginTop: "1rem",
+              padding: "0.75rem",
+              border: "1px solid var(--gold-dim)",
+              background: "rgba(201,169,110,0.05)",
+              fontSize: "0.8rem",
+              color: "var(--gold)",
+            }}
+          >
+            {message}
+          </div>
+        )}
+        {error && (
+          <div
+            style={{
+              marginTop: "1rem",
+              padding: "0.75rem",
+              border: "1px solid #5a1a1a",
+              background: "rgba(200,0,0,0.05)",
+              fontSize: "0.8rem",
+              color: "#e05",
+            }}
+          >
+            {error}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -2,13 +2,36 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { API_BASE, validateAndNormalisePhone } from "./api";
 
+const S = {
+  label: {
+    fontSize: "0.65rem",
+    letterSpacing: "0.15em",
+    textTransform: "uppercase",
+    color: "var(--muted)",
+    display: "block",
+    marginBottom: "0.4rem",
+  },
+  input: {
+    width: "100%",
+    background: "var(--bg)",
+    border: "1px solid var(--border)",
+    color: "var(--text)",
+    padding: "0.65rem 0.75rem",
+    fontSize: "0.875rem",
+    borderRadius: 2,
+    fontFamily: "var(--font-body)",
+    outline: "none",
+    boxSizing: "border-box",
+  },
+};
+
 export default function RoomBooking() {
   const { roomId } = useParams();
   const location = useLocation();
   const hotelSlug = new URLSearchParams(location.search).get("hotel");
 
   const [product, setProduct] = useState(null);
-  const [fetchError, setFetchError] = useState(null); // separate from action error
+  const [fetchError, setFetchError] = useState(null);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [available, setAvailable] = useState(null);
@@ -19,40 +42,32 @@ export default function RoomBooking() {
   const [phone, setPhone] = useState("");
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [checkoutId, setCheckoutId] = useState(null);
-  const [paymentStatus, setPaymentStatus] = useState(null); // "pending"|"success"|"failed"
+  const [paymentStatus, setPaymentStatus] = useState(null);
 
-  // Ref so pollPaymentStatus never goes stale (avoids stale-closure issues).
   const paymentStatusRef = useRef(paymentStatus);
   useEffect(() => {
     paymentStatusRef.current = paymentStatus;
   }, [paymentStatus]);
 
-  // ── Today's date string for min= attributes ────────────────────────────────
   const today = new Date().toISOString().split("T")[0];
 
-  // ── Fetch room ─────────────────────────────────────────────────────────────
-  // useCallback so it can be called both from useEffect and after a successful payment.
   const fetchProduct = useCallback(async () => {
     if (!roomId || !hotelSlug) {
       setFetchError("Invalid room or hotel.");
       return;
     }
-
     try {
       const res = await fetch(
-        `${API_BASE}/products/?hotel=${hotelSlug}&product_type=room`
+        `${API_BASE}/products/?hotel=${hotelSlug}&product_type=room`,
       );
       if (!res.ok) throw new Error("Failed to fetch products list");
-
       const data = await res.json();
       const room = data.results.find((p) => p.id === Number(roomId));
       if (!room) throw new Error("Room not found");
-
       room.price = Number(room.price);
       setProduct(room);
       setFetchError(null);
     } catch (err) {
-      console.error(err);
       setFetchError(err.message);
       setProduct(null);
     }
@@ -62,106 +77,90 @@ export default function RoomBooking() {
     fetchProduct();
   }, [fetchProduct]);
 
-  // ── Total price ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (start && end && product?.price) {
-      const nights = Math.round(
-        (new Date(end).getTime() - new Date(start).getTime()) /
-          (1000 * 60 * 60 * 24)
-      );
-      // FIX: reject invalid ranges (check-out before or equal to check-in)
+      const nights = Math.round((new Date(end) - new Date(start)) / 86400000);
       setTotalPrice(nights > 0 ? product.price * nights : 0);
     } else {
       setTotalPrice(0);
     }
   }, [start, end, product]);
 
-  // ── Check availability ─────────────────────────────────────────────────────
   const checkAvailability = async () => {
     if (!start || !end) {
-      setActionError("Please select both check-in and check-out dates.");
+      setActionError("Select both check-in and check-out dates.");
       return;
     }
     if (new Date(end) <= new Date(start)) {
       setActionError("Check-out must be after check-in.");
       return;
     }
-
     setChecking(true);
     setActionError(null);
     setMessage(null);
-
     try {
       const res = await fetch(
-        `${API_BASE}/availability/?product=${roomId}&check_in=${start}&check_out=${end}`
+        `${API_BASE}/availability/?product=${roomId}&check_in=${start}&check_out=${end}`,
       );
-      if (!res.ok) throw new Error("Failed to check availability");
-
+      if (!res.ok) throw new Error();
       const data = await res.json();
       setAvailable(data.available);
       setMessage(
-        data.available ? "Room is available." : "Room is not available."
+        data.available
+          ? "Room is available."
+          : "Room is not available for the selected dates.",
       );
-    } catch (err) {
-      console.error(err);
+    } catch {
       setActionError("Failed to check availability.");
     } finally {
       setChecking(false);
     }
   };
 
-  // ── Poll payment status ────────────────────────────────────────────────────
-  // Returns a promise that resolves when polling is complete.
-  const pollPaymentStatus = async (paymentId, interval = 5000, attempts = 6) => {
+  const pollPaymentStatus = async (
+    paymentId,
+    interval = 5000,
+    attempts = 6,
+  ) => {
     setPaymentStatus("pending");
-
     for (let i = 0; i < attempts; i++) {
       await new Promise((r) => setTimeout(r, interval));
-
       try {
         const res = await fetch(
-          `${API_BASE}/payments/status/?payment_id=${paymentId}`
+          `${API_BASE}/payments/status/?payment_id=${paymentId}`,
         );
         const data = await res.json();
-
         if (!res.ok) {
           setActionError(data.detail || "Failed to check payment status.");
           setPaymentStatus("failed");
           return;
         }
-
         if (data.status === "success") {
           setPaymentStatus("success");
           setMessage("Payment successful! Your booking is confirmed.");
-          fetchProduct(); // refresh room data
+          fetchProduct();
           return;
         }
-
         if (data.status === "failed") {
           setPaymentStatus("failed");
           setActionError("Payment was declined. Please try again.");
           return;
         }
-      } catch (err) {
-        console.error(err);
+      } catch {
         setActionError("Error while checking payment status.");
         setPaymentStatus("failed");
         return;
       }
     }
-
-    // Timed out without a definitive status
     setMessage(
-      "Payment is taking longer than expected. Please check your M-Pesa messages."
+      "Payment is taking longer than expected. Check your M-Pesa messages.",
     );
     setPaymentStatus(null);
   };
 
-  // ── M-Pesa STK push ───────────────────────────────────────────────────────
   const startMpesaPayment = async () => {
     setActionError(null);
     setMessage(null);
-
     if (!available) {
       setActionError("Please check availability before paying.");
       return;
@@ -170,176 +169,313 @@ export default function RoomBooking() {
       setActionError("Invalid total price. Check your selected dates.");
       return;
     }
-
-    // FIX: validate and normalise phone before sending
     const { valid, phone: normalisedPhone } = validateAndNormalisePhone(phone);
     if (!valid) {
       setActionError(
-        "Enter a valid Kenyan phone number (e.g. 0712345678 or 254712345678)."
+        "Enter a valid Kenyan phone number (e.g. 0712345678 or 254712345678).",
       );
       return;
     }
-
     setPaymentLoading(true);
-
     try {
-      const payload = {
-        phone: normalisedPhone,
-        product_id: product.id,
-        hotel_slug: hotelSlug,
-        check_in: start,
-        check_out: end,
-        amount: totalPrice,
-      };
-
       const res = await fetch(`${API_BASE}/payments/mpesa/stk_push/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          phone: normalisedPhone,
+          product_id: product.id,
+          hotel_slug: hotelSlug,
+          check_in: start,
+          check_out: end,
+          amount: totalPrice,
+        }),
       });
-
       const data = await res.json();
-
       if (!res.ok) {
         setActionError(data.detail || "Failed to initiate payment.");
-        return; // finally will still run
+        return;
       }
-
       setCheckoutId(data.checkout_request_id);
       setMessage("STK Push sent. Complete payment on your phone.");
-
-      // FIX: await polling so paymentLoading stays true for its duration.
       await pollPaymentStatus(data.payment_id, 5000, 6);
-    } catch (err) {
-      console.error(err);
+    } catch {
       setActionError("Network error starting payment.");
     } finally {
-      // FIX: paymentLoading is cleared only after polling is done.
       setPaymentLoading(false);
     }
   };
 
-  // ── Render guards — product check first, then error ────────────────────────
-  // FIX: check !product before fetchError so we don't show a blank screen
-  // when error clears but product hasn't loaded yet.
   if (!product && !fetchError)
-    return <p className="text-center mt-8 text-gray-600 dark:text-gray-300">Loading...</p>;
-
+    return (
+      <p
+        style={{
+          color: "var(--muted)",
+          textAlign: "center",
+          marginTop: "4rem",
+        }}
+      >
+        Loading...
+      </p>
+    );
   if (fetchError)
-    return <p className="text-center mt-8 text-red-500">{fetchError}</p>;
+    return (
+      <p style={{ color: "#e05", textAlign: "center", marginTop: "4rem" }}>
+        {fetchError}
+      </p>
+    );
+
+  const dateInvalid = start && end && new Date(end) <= new Date(start);
 
   return (
-    <div className="max-w-xl mx-auto mt-12 p-6 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-3xl shadow-2xl border border-white/10">
-      {/* Room header */}
-      <div className="flex items-center justify-between gap-4 mb-6">
-        <div>
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {product.name}
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            {product.hotel?.name ?? hotelSlug} &bull; {product.currency}{" "}
-            <span className="font-semibold">{product.price.toFixed(2)}</span> /
-            night
-          </p>
-        </div>
-        <div className="w-28 h-20 rounded-xl overflow-hidden shadow-inner bg-white/30 flex items-center justify-center">
-          {product.image ? (
+    <div
+      style={{ maxWidth: 560, margin: "3rem auto", padding: "0 1.5rem 4rem" }}
+    >
+      {/* Page header */}
+      <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+        <p
+          style={{
+            fontSize: "0.65rem",
+            letterSpacing: "0.4em",
+            textTransform: "uppercase",
+            color: "var(--gold)",
+            marginBottom: "0.4rem",
+          }}
+        >
+          Reservation
+        </p>
+        <h2
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(1.6rem, 4vw, 2.4rem)",
+            fontWeight: 300,
+            color: "var(--text)",
+          }}
+        >
+          Book Your{" "}
+          <em style={{ fontStyle: "italic", color: "var(--gold)" }}>Stay</em>
+        </h2>
+      </div>
+
+      {/* Room summary card */}
+      <div
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          padding: "1.25rem",
+          marginBottom: "1.5rem",
+          display: "flex",
+          gap: "1rem",
+          alignItems: "center",
+        }}
+      >
+        {product.image && (
+          <div
+            style={{
+              width: 80,
+              height: 60,
+              flexShrink: 0,
+              overflow: "hidden",
+              background: "var(--bg)",
+            }}
+          >
             <img
               src={product.image}
               alt={product.name}
-              className="w-full h-full object-cover"
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
-          ) : (
-            <div className="text-xs text-gray-500">No image</div>
-          )}
+          </div>
+        )}
+        <div>
+          <p
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "1.1rem",
+              color: "var(--text)",
+              marginBottom: "0.2rem",
+            }}
+          >
+            {product.name}
+          </p>
+          <p style={{ fontSize: "0.8rem", color: "var(--muted)" }}>
+            {product.hotel?.name ?? hotelSlug} &bull;&nbsp;
+            <span style={{ color: "var(--gold)" }}>
+              {product.currency} {product.price.toFixed(2)}
+            </span>{" "}
+            / night
+          </p>
         </div>
       </div>
 
       {/* Date pickers */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "1rem",
+          marginBottom: "0.75rem",
+        }}
+      >
         <div>
-          <label
-            htmlFor="check-in"
-            className="block text-xs text-gray-600 dark:text-gray-300 mb-1"
-          >
+          <label htmlFor="check-in" style={S.label}>
             Check-in
           </label>
           <input
             id="check-in"
             type="date"
-            min={today} // FIX: prevent past dates
+            min={today}
             value={start}
             onChange={(e) => {
               setStart(e.target.value);
-              // Reset check-out if it's now before or equal to new check-in
               if (end && end <= e.target.value) setEnd("");
               setAvailable(null);
             }}
-            className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+            style={{
+              ...S.input,
+              borderColor: start ? "var(--gold-dim)" : "var(--border)",
+            }}
           />
         </div>
-
         <div>
-          <label
-            htmlFor="check-out"
-            className="block text-xs text-gray-600 dark:text-gray-300 mb-1"
-          >
+          <label htmlFor="check-out" style={S.label}>
             Check-out
           </label>
           <input
             id="check-out"
             type="date"
-            // FIX: check-out must be strictly after check-in
             min={start || today}
             value={end}
             onChange={(e) => {
               setEnd(e.target.value);
               setAvailable(null);
             }}
-            className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+            style={{
+              ...S.input,
+              borderColor: end ? "var(--gold-dim)" : "var(--border)",
+            }}
           />
         </div>
       </div>
 
-      {/* Validity warning */}
-      {start && end && new Date(end) <= new Date(start) && (
-        <p className="text-amber-600 text-xs mb-3">
+      {dateInvalid && (
+        <p
+          style={{
+            color: "#c9a96e",
+            fontSize: "0.75rem",
+            marginBottom: "0.75rem",
+          }}
+        >
           Check-out must be after check-in.
         </p>
       )}
 
-      {/* Availability & price summary */}
-      <div className="flex items-center justify-between gap-4 mb-6">
+      {/* Availability row */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "1.5rem",
+        }}
+      >
         <button
           onClick={checkAvailability}
-          disabled={checking || !start || !end || new Date(end) <= new Date(start)}
-          className="px-5 py-2 rounded-full bg-indigo-600 text-white font-medium shadow hover:scale-[1.02] transition disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={checking || !start || !end || !!dateInvalid}
+          style={{
+            padding: "0.55rem 1.25rem",
+            border: "1px solid var(--gold)",
+            color: "var(--gold)",
+            background: "transparent",
+            fontSize: "0.65rem",
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            cursor:
+              checking || !start || !end || !!dateInvalid
+                ? "not-allowed"
+                : "pointer",
+            opacity: checking || !start || !end || !!dateInvalid ? 0.4 : 1,
+            transition: "background 0.2s, color 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            if (!e.currentTarget.disabled) {
+              e.currentTarget.style.background = "var(--gold)";
+              e.currentTarget.style.color = "var(--bg)";
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "var(--gold)";
+          }}
         >
           {checking ? "Checking..." : "Check Availability"}
         </button>
 
-        <div className="text-right">
-          <p className="text-sm text-gray-500">Total</p>
-          <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
-            {product.currency}{" "}
-            {totalPrice > 0 ? totalPrice.toFixed(2) : "\u2014"}
+        <div style={{ textAlign: "right" }}>
+          <p
+            style={{
+              fontSize: "0.65rem",
+              letterSpacing: "0.1em",
+              color: "var(--muted)",
+              textTransform: "uppercase",
+            }}
+          >
+            Total
+          </p>
+          <p
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "1.4rem",
+              fontWeight: 300,
+              color: totalPrice > 0 ? "var(--gold)" : "var(--border)",
+            }}
+          >
+            {totalPrice > 0
+              ? `${product.currency} ${totalPrice.toFixed(2)}`
+              : "—"}
           </p>
         </div>
       </div>
 
-      {/* Payment section */}
-      {available && (
-        <div className="p-4 rounded-2xl bg-white/40 dark:bg-black/40 border border-white/10 mb-4">
-          <h4 className="text-sm font-semibold mb-2 text-gray-800 dark:text-gray-200">
-            Secure your booking &mdash; Pay with M-Pesa
-          </h4>
+      {/* Divider */}
+      <div
+        style={{
+          height: 1,
+          background: "var(--border)",
+          marginBottom: "1.5rem",
+        }}
+      />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+      {/* M-Pesa payment section */}
+      {available && (
+        <div
+          style={{
+            background: "var(--bg)",
+            border: "1px solid var(--border)",
+            padding: "1.25rem",
+            marginBottom: "1rem",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "0.65rem",
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+              color: "var(--gold)",
+              marginBottom: "1rem",
+            }}
+          >
+            Pay with M-Pesa
+          </p>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "1rem",
+              marginBottom: "1rem",
+            }}
+          >
             <div>
-              <label
-                htmlFor="booking-phone"
-                className="block text-xs text-gray-500 mb-1"
-              >
+              <label htmlFor="booking-phone" style={S.label}>
                 Phone (2547XXXXXXXX)
               </label>
               <input
@@ -348,26 +484,49 @@ export default function RoomBooking() {
                 placeholder="0712 345 678"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                style={S.input}
               />
             </div>
-            <div className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between">
-              <div>
-                <div className="text-xs text-gray-500">Amount</div>
-                <div className="font-semibold text-gray-900 dark:text-gray-100">
-                  {product.currency} {totalPrice.toFixed(2)}
-                </div>
-              </div>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "flex-end",
+              }}
+            >
+              <p style={S.label}>Amount</p>
+              <p
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "1.3rem",
+                  fontWeight: 300,
+                  color: "var(--gold)",
+                }}
+              >
+                {product.currency} {totalPrice.toFixed(2)}
+              </p>
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div style={{ display: "flex", gap: "0.75rem" }}>
             <button
               onClick={startMpesaPayment}
               disabled={paymentLoading}
-              className="flex-1 px-4 py-3 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-black font-semibold shadow disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                flex: 1,
+                padding: "0.65rem",
+                background: paymentLoading ? "transparent" : "var(--gold)",
+                border: "1px solid var(--gold)",
+                color: paymentLoading ? "var(--gold)" : "var(--bg)",
+                fontSize: "0.7rem",
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                cursor: paymentLoading ? "not-allowed" : "pointer",
+                opacity: paymentLoading ? 0.6 : 1,
+                transition: "background 0.2s, color 0.2s",
+              }}
             >
-              {paymentLoading ? "Processing..." : "Pay with M-Pesa"}
+              {paymentLoading ? "Processing..." : "Pay Now"}
             </button>
             <button
               onClick={() => {
@@ -377,50 +536,91 @@ export default function RoomBooking() {
                 setPaymentStatus(null);
                 setActionError(null);
               }}
-              className="px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/40"
+              style={{
+                padding: "0.65rem 1rem",
+                background: "transparent",
+                border: "1px solid var(--border)",
+                color: "var(--muted)",
+                fontSize: "0.65rem",
+                letterSpacing: "0.15em",
+                textTransform: "uppercase",
+                cursor: "pointer",
+                transition: "border-color 0.2s, color 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "var(--gold-dim)";
+                e.currentTarget.style.color = "var(--text)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "var(--border)";
+                e.currentTarget.style.color = "var(--muted)";
+              }}
             >
               Reset
             </button>
           </div>
 
           {checkoutId && (
-            <div className="mt-3 text-sm text-gray-700 dark:text-gray-300">
-              STK Checkout ID:{" "}
-              <span className="font-mono">{checkoutId}</span>
-            </div>
+            <p
+              style={{
+                marginTop: "0.75rem",
+                fontSize: "0.75rem",
+                color: "var(--muted)",
+                fontFamily: "monospace",
+              }}
+            >
+              Checkout ID: {checkoutId}
+            </p>
           )}
 
           {paymentStatus && (
-            <div className="mt-2 text-sm">
-              Payment status:{" "}
-              <span
-                className={`font-semibold ${
+            <p
+              style={{
+                marginTop: "0.5rem",
+                fontSize: "0.8rem",
+                color:
                   paymentStatus === "success"
-                    ? "text-green-600"
+                    ? "var(--gold)"
                     : paymentStatus === "failed"
-                    ? "text-red-500"
-                    : "text-yellow-600"
-                }`}
-              >
-                {paymentStatus}
-              </span>
-            </div>
+                      ? "#e05"
+                      : "var(--muted)",
+              }}
+            >
+              Payment: <strong>{paymentStatus}</strong>
+            </p>
           )}
         </div>
       )}
 
+      {/* Status messages */}
       {message && (
-        <div className="text-center text-green-600 dark:text-green-400 mb-2 text-sm">
+        <p
+          style={{
+            color: "var(--gold)",
+            fontSize: "0.85rem",
+            textAlign: "center",
+            marginBottom: "0.5rem",
+          }}
+        >
           {message}
-        </div>
+        </p>
       )}
       {actionError && (
-        <div className="text-center text-red-500 mb-2 text-sm">{actionError}</div>
+        <p
+          style={{
+            color: "#e05",
+            fontSize: "0.85rem",
+            textAlign: "center",
+            marginBottom: "0.5rem",
+          }}
+        >
+          {actionError}
+        </p>
       )}
       {available === false && (
-        <div className="text-center text-red-500 mb-2 text-sm">
+        <p style={{ color: "#e05", fontSize: "0.85rem", textAlign: "center" }}>
           Not available for the selected dates.
-        </div>
+        </p>
       )}
     </div>
   );

@@ -13,21 +13,16 @@ export default function CsvUpload({ onSuccess }) {
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
     if (!selected) return;
-
-    // Validate MIME / extension
     if (!selected.name.toLowerCase().endsWith(".csv")) {
       setError("Only .csv files are accepted.");
       setFile(null);
       return;
     }
-
-    // Validate file size
     if (selected.size > MAX_FILE_SIZE_BYTES) {
       setError(`File is too large. Maximum size is ${MAX_FILE_SIZE_MB} MB.`);
       setFile(null);
       return;
     }
-
     setFile(selected);
     setError(null);
   };
@@ -37,29 +32,25 @@ export default function CsvUpload({ onSuccess }) {
       setError("Please select a CSV file first.");
       return;
     }
-
     setLoading(true);
     setError(null);
     setMessage(null);
-
     const formData = new FormData();
     formData.append("file", file);
-
     try {
       const res = await apiFetch(
         "/products/upload-csv/",
         { method: "POST", body: formData },
-        true // auth required — throws AUTH_MISSING or UNAUTHORIZED
+        true,
       );
-
       const data = await res.json();
-
       if (!res.ok) {
         setError(data.detail || "Upload failed. Please check the file format.");
       } else {
-        setMessage(`Upload successful — Created: ${data.created}, Skipped: ${data.skipped}`);
+        setMessage(
+          `Upload successful — Created: ${data.created}, Skipped: ${data.skipped}`,
+        );
         setFile(null);
-        // Reset the file input visually
         const input = document.getElementById("csv-file-input");
         if (input) input.value = "";
         onSuccess?.();
@@ -68,7 +59,6 @@ export default function CsvUpload({ onSuccess }) {
       if (err.message === "AUTH_MISSING" || err.code === "UNAUTHORIZED") {
         setError("Your session has expired. Please log in again.");
       } else {
-        console.error(err);
         setError("Network error. Please try again.");
       }
     } finally {
@@ -77,51 +67,134 @@ export default function CsvUpload({ onSuccess }) {
   };
 
   return (
-    <div className="max-w-lg mx-auto p-6 bg-white dark:bg-gray-700 rounded-xl shadow-lg border border-gray-200 dark:border-gray-600">
-      <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-4 border-b border-gray-300 dark:border-gray-600 pb-2">
-        CSV Import
-      </h2>
-
-      <div className="mb-4">
-        <label
-          htmlFor="csv-file-input"
-          className="block text-gray-700 dark:text-gray-200 mb-2 font-medium"
+    <div style={{ maxWidth: 520, margin: "3rem auto", padding: "0 1.5rem" }}>
+      {/* Header */}
+      <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+        <p
+          style={{
+            fontSize: "0.65rem",
+            letterSpacing: "0.4em",
+            textTransform: "uppercase",
+            color: "var(--gold)",
+            marginBottom: "0.4rem",
+          }}
         >
-          Select CSV{" "}
-          <span className="text-xs text-gray-400">(max {MAX_FILE_SIZE_MB} MB)</span>
-        </label>
-        <input
-          id="csv-file-input"
-          type="file"
-          accept=".csv"
-          onChange={handleFileChange}
-          className="block w-full text-gray-700 dark:text-gray-200 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-        {file && (
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            {file.name} &mdash; {(file.size / 1024).toFixed(1)} KB
-          </p>
-        )}
+          Admin
+        </p>
+        <h2
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(1.6rem, 4vw, 2.2rem)",
+            fontWeight: 300,
+            color: "var(--text)",
+          }}
+        >
+          CSV{" "}
+          <em style={{ fontStyle: "italic", color: "var(--gold)" }}>Import</em>
+        </h2>
       </div>
 
-      <button
-        onClick={handleUpload}
-        className="w-full py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-        disabled={loading || !file}
+      <div
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          padding: "1.75rem",
+        }}
       >
-        {loading ? "Uploading..." : "Upload CSV"}
-      </button>
+        <div style={{ marginBottom: "1.25rem" }}>
+          <label
+            htmlFor="csv-file-input"
+            style={{
+              fontSize: "0.65rem",
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              color: "var(--muted)",
+              display: "block",
+              marginBottom: "0.5rem",
+            }}
+          >
+            Select CSV{" "}
+            <span style={{ color: "var(--border)" }}>
+              (max {MAX_FILE_SIZE_MB} MB)
+            </span>
+          </label>
+          <input
+            id="csv-file-input"
+            type="file"
+            accept=".csv"
+            onChange={handleFileChange}
+            style={{
+              width: "100%",
+              color: "var(--muted)",
+              fontSize: "0.8rem",
+              background: "var(--bg)",
+              border: "1px solid var(--border)",
+              padding: "0.6rem 0.75rem",
+              boxSizing: "border-box",
+            }}
+          />
+          {file && (
+            <p
+              style={{
+                marginTop: "0.4rem",
+                fontSize: "0.7rem",
+                color: "var(--muted)",
+              }}
+            >
+              {file.name} — {(file.size / 1024).toFixed(1)} KB
+            </p>
+          )}
+        </div>
 
-      {error && (
-        <p className="mt-4 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 p-3 rounded-lg text-sm">
-          {error}
-        </p>
-      )}
-      {message && (
-        <p className="mt-4 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 p-3 rounded-lg text-sm">
-          {message}
-        </p>
-      )}
+        <button
+          onClick={handleUpload}
+          disabled={loading || !file}
+          style={{
+            width: "100%",
+            padding: "0.7rem",
+            background: loading || !file ? "transparent" : "var(--gold)",
+            border: "1px solid var(--gold)",
+            color: loading || !file ? "var(--gold-dim)" : "var(--bg)",
+            fontSize: "0.7rem",
+            letterSpacing: "0.25em",
+            textTransform: "uppercase",
+            cursor: loading || !file ? "not-allowed" : "pointer",
+            opacity: loading || !file ? 0.5 : 1,
+            transition: "background 0.2s, color 0.2s",
+          }}
+        >
+          {loading ? "Uploading..." : "Upload CSV"}
+        </button>
+
+        {error && (
+          <div
+            style={{
+              marginTop: "1rem",
+              padding: "0.75rem",
+              border: "1px solid #5a1a1a",
+              background: "rgba(200,0,0,0.05)",
+              fontSize: "0.8rem",
+              color: "#e05",
+            }}
+          >
+            {error}
+          </div>
+        )}
+        {message && (
+          <div
+            style={{
+              marginTop: "1rem",
+              padding: "0.75rem",
+              border: "1px solid var(--gold-dim)",
+              background: "rgba(201,169,110,0.05)",
+              fontSize: "0.8rem",
+              color: "var(--gold)",
+            }}
+          >
+            {message}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

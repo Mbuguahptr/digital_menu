@@ -1,102 +1,158 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import getImageUrl from "../utils/getImageUrl";
 
 export default function ProductCard({ product }) {
+  const [hovered, setHovered] = useState(false);
   const imageUrl = getImageUrl(product.image);
 
   return (
     <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
-        background: "var(--surface)",
-        border: "1px solid var(--border)",
-        borderRadius: 2,
+        position: "relative",
+        aspectRatio: "2/3",
         overflow: "hidden",
-        display: "flex", flexDirection: "column",
-        transition: "border-color 0.2s, box-shadow 0.2s",
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.borderColor = "var(--gold-dim)";
-        e.currentTarget.style.boxShadow = "0 8px 32px rgba(0,0,0,0.5)";
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.borderColor = "var(--border)";
-        e.currentTarget.style.boxShadow = "none";
+        borderRadius: 2,
+        background: "var(--surface)",
+        cursor: "pointer",
       }}
     >
-      {/* Image */}
-      {imageUrl && (
-        <div style={{ width: "100%", aspectRatio: "4/3", overflow: "hidden", background: "var(--bg)" }}>
-          <img
-            src={imageUrl}
-            alt={product.name}
-            style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.5s ease" }}
-            onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"}
-            onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
-          />
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt={product.name}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            transition: "transform 0.5s ease",
+            transform: hovered ? "scale(1.07)" : "scale(1)",
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "var(--border)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--muted)",
+            fontSize: "0.7rem",
+          }}
+        >
+          No Image
         </div>
       )}
-
-      {/* Content */}
-      <div style={{ padding: "1.25rem", display: "flex", flexDirection: "column", flex: 1 }}>
-        <h3 style={{
-          fontFamily: "var(--font-display)",
-          fontSize: "1.15rem", fontWeight: 400,
-          color: "var(--text)", marginBottom: "0.25rem",
-        }}>
+      {/* Permanent gradient */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.2) 45%, transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
+      {/* Hover overlay */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "rgba(0,0,0,0.5)",
+          opacity: hovered ? 1 : 0,
+          transition: "opacity 0.3s ease",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "0.5rem",
+          padding: "1rem",
+        }}
+      >
+        <Link
+          to={`/compare?name=${encodeURIComponent(product.name)}`}
+          style={{
+            width: "100%",
+            textAlign: "center",
+            padding: "0.55rem",
+            background: "transparent",
+            border: "1px solid rgba(255,255,255,0.5)",
+            color: "#fff",
+            fontSize: "0.6rem",
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            textDecoration: "none",
+          }}
+        >
+          Compare
+        </Link>
+        <Link
+          to={`/book/${product.id}`}
+          style={{
+            width: "100%",
+            textAlign: "center",
+            padding: "0.55rem",
+            background: "var(--gold)",
+            color: "var(--bg)",
+            fontSize: "0.6rem",
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            textDecoration: "none",
+            fontWeight: 600,
+          }}
+        >
+          Book
+        </Link>
+      </div>
+      {/* Bottom info */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          padding: "0.75rem",
+        }}
+      >
+        <p
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "0.95rem",
+            color: "#fff",
+            lineHeight: 1.2,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            marginBottom: "0.15rem",
+          }}
+        >
           {product.name}
-        </h3>
-
-        <p style={{ color: "var(--gold)", fontSize: "0.9rem", fontWeight: 500, marginBottom: "0.5rem" }}>
+        </p>
+        <p
+          style={{ fontSize: "0.75rem", color: "var(--gold)", fontWeight: 500 }}
+        >
           {product.currency} {product.price}
         </p>
-
         {product.description && (
-          <p style={{
-            color: "var(--muted)", fontSize: "0.8rem",
-            lineHeight: 1.6, marginBottom: "1rem", flex: 1,
-            display: "-webkit-box", WebkitLineClamp: 3,
-            WebkitBoxOrient: "vertical", overflow: "hidden",
-          }}>
+          <p
+            style={{
+              fontSize: "0.65rem",
+              color: "rgba(255,255,255,0.5)",
+              marginTop: "0.15rem",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
             {product.description}
           </p>
         )}
-
-        {/* Actions */}
-        <div style={{ display: "flex", gap: "0.75rem", marginTop: "auto" }}>
-          <Link
-            to={`/compare?name=${encodeURIComponent(product.name)}`}
-            style={{
-              flex: 1, textAlign: "center",
-              padding: "0.4rem 0.75rem",
-              border: "1px solid var(--border)",
-              color: "var(--muted)",
-              fontSize: "0.65rem", letterSpacing: "0.15em", textTransform: "uppercase",
-              textDecoration: "none",
-              transition: "border-color 0.2s, color 0.2s",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--gold-dim)"; e.currentTarget.style.color = "var(--gold)"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; }}
-          >
-            Compare
-          </Link>
-          <Link
-            to={`/book/${product.id}`}
-            style={{
-              flex: 1, textAlign: "center",
-              padding: "0.4rem 0.75rem",
-              border: "1px solid var(--gold)",
-              color: "var(--gold)",
-              fontSize: "0.65rem", letterSpacing: "0.15em", textTransform: "uppercase",
-              textDecoration: "none",
-              transition: "background 0.2s, color 0.2s",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = "var(--gold)"; e.currentTarget.style.color = "var(--bg)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--gold)"; }}
-          >
-            Book
-          </Link>
-        </div>
       </div>
     </div>
   );

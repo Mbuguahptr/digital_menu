@@ -191,7 +191,7 @@ export default function App() {
             color: T.gold,
             marginBottom: "1.5rem",
           }}>
-            Hotels &amp; Dining · Eldoret
+            Hotels &amp; Dining · Kenya
           </p>
 
           <h1 style={{
@@ -228,7 +228,7 @@ export default function App() {
             lineHeight: 1.7,
             fontWeight: 300,
           }}>
-            Browse menus, compare prices, and book rooms at the finest hotels in Eldoret.
+            Browse menus, compare prices, and book rooms at the finest hotels in Kenya.
           </p>
 
           <a
@@ -322,7 +322,7 @@ export default function App() {
           textTransform: "uppercase",
           color: T.border,
         }}>
-          &copy; {new Date().getFullYear()} · All rights reserved · Eldoret
+          &copy; {new Date().getFullYear()} · All rights reserved 
         </p>
       </footer>
     </div>
